@@ -1,18 +1,124 @@
 # dagu-cli
 
-Agent-first command tree for the Dagu REST API. One API key and a base URL are enough. Every vendored OpenAPI operation has one named command.
+[English](./README.md) | [中文](./README.zh-CN.md)
+
+dagu-cli is a command-line client for a [Dagu](https://dagu.sh) server. You give it a base URL and an API key. It turns that server's REST API into named commands, so an agent can discover `dag`, `run`, or `webhook` without learning 227 operation ids.
 
 ```bash
 export DAGU_BASE_URL=http://127.0.0.1:8080
-export DAGU_API_KEY=dagu_...
-dagu-cli --help
+export DAGU_API_KEY=<api-key>
 dagu-cli dag list
-dagu-cli dag get demo.yaml
-dagu-cli skills get core
 ```
 
-`DAGU_API_TOKEN` is accepted as an alias of `DAGU_API_KEY`. If `DAGU_BASE_URL` already ends in `/api/v1`, it is used as the API root.
+Bun 1.3.14 or newer is required. Node cannot run the TypeScript bin. Version 0.1.0 is the first source release. It is not published to npm. Before 1.0.0, command names may change.
 
-Stdout is JSON. The process exits `0` on success, `2` on usage or config errors, and `1` on HTTP or transport failures.
+## The problem
 
-Agents should start at `skills/dagu/SKILL.md`, then load only the skill or noun they need.
+Dagu's REST API is one HTTP surface with 227 operations. A generic `call <operationId>` client makes an agent reread the whole catalog before every action. The official `dagu` binary also does not cover this API. You still need a way to say "list DAGs" or "stop this run" and have the CLI fill in the method, path, and parameters.
+
+## What you get
+
+- A noun-and-verb tree. Root help shows `dag`, `run`, `webhook`, `sync`, `wiki`, `profile`, `notify`, `incident`, `queue`, `secret`, `search`, and `admin`.
+- One command for every operation in the vendored OpenAPI document. The test suite rejects a missing or duplicate mapping.
+- JSON on stdout. Exit `0` on success, `2` on usage or config errors, `1` on HTTP or transport failures.
+- Agent skill text served by the CLI, so the instructions match the installed command tree.
+
+This CLI does not author DAG YAML, schedule workflows, or replace the `dagu` binary.
+
+## How it works
+
+The CLI reads `spec/openapi.json` and `spec/commands.json`. A command such as `dag start <fileName>` is a fixed name for one operation. Positional arguments fill path parameters in the order shown by `--help`. `--query` and `--body` send optional JSON. The process then sends one HTTP request to `<DAGU_BASE_URL>/api/v1`.
+
+`dagu-cli skills get core` returns only everyday `dag` and `run` commands. `skills get run` adds steps, sub-runs, human tasks, and artifacts. `skills get admin` adds users, API keys, workspaces, and system controls. Other nouns disclose themselves through `dagu-cli <noun> --help`.
+
+## Install
+
+Install Bun 1.3.14 or newer, clone this repository, then:
+
+```bash
+bun install --frozen-lockfile
+bun run dagu-cli -- --help
+```
+
+There is no registry package yet. Do not run `bun install -g dagu-cli` or `npm install -g dagu-cli`; the name is not published. `npm view dagu-cli` currently returns 404.
+
+A packed tarball can be installed with `bun install <path-to-tarball>` from an empty directory. The bin is `src/cli.ts`, so the installed package still runs under Bun.
+
+## Quick start
+
+From this repository, with Bun 1.3.14:
+
+```bash
+bun install --frozen-lockfile
+bun run dagu-cli -- --help
+bun run dagu-cli -- skills get core
+```
+
+Root help is JSON. The first command entry looks like this:
+
+```json
+{"command":"admin","usage":"dagu-cli admin","summary":"50 commands"}
+```
+
+`skills` is also listed. It does not call the server.
+
+To call a server, create an API key in Dagu and export it in the shell. Do not put it in a file that you commit.
+
+```bash
+export DAGU_BASE_URL=http://127.0.0.1:8080
+export DAGU_API_KEY=<api-key>
+bun run dagu-cli -- dag list
+```
+
+`DAGU_API_TOKEN` is accepted as an alias. If the base URL already ends in `/api/v1`, that path is not appended twice. A successful response has `"ok": true` and a `status` of 200. The DAG array is at `result.body`. The exact server payload depends on your Dagu version.
+
+Inspect the next layer before changing anything:
+
+```bash
+bun run dagu-cli -- dag --help
+bun run dagu-cli -- dag start --help
+```
+
+`dag start <fileName>` is POST `/dags/{fileName}/start`. Pass a JSON body with `--body` only when you intend to start a run.
+
+## Commands you will hit next
+
+Path parameters are positional. Optional query parameters go in `--query '<json object>'`. JSON bodies go in `--body` or `--body-file`.
+
+```text
+dagu-cli dag get <fileName>
+dagu-cli dag spec get <fileName>
+dagu-cli run list
+dagu-cli run get <name> <dagRunId>
+dagu-cli run log <name> <dagRunId>
+dagu-cli webhook trigger <fileName> --token <webhook-token>
+dagu-cli wiki attachment put --body-file <path> --query '<json>'
+```
+
+`webhook trigger` does not use `DAGU_API_KEY`. It sends `--token` as the bearer token. Add `--signature` and `--profile` only when that webhook requires them.
+
+`wiki attachment put` is the one command that sends raw bytes. `run step logs form` and `run sub step logs form` send `--body` as `application/x-www-form-urlencoded`.
+
+The full tree is the CLI help, not this page. Start with `skills/dagu/SKILL.md` if you are an agent.
+
+## Security and privacy
+
+The CLI sends the API key only to the base URL you set. It reads `--body-file` from the local path you pass. It does not write a config file and does not send data anywhere else. Error text replaces the API key with `[redacted]`.
+
+There is no second confirmation prompt. A command whose HTTP method is POST, PUT, PATCH, or DELETE changes the server. Run those only when that effect is intended.
+
+See [SECURITY.md](./SECURITY.md). A private vulnerability contact is not published yet.
+
+## Limits
+
+- The command tree matches the vendored `spec/openapi.json` (`info.version` 1.0.0). A newer or older Dagu server can reject commands or add operations this release does not name.
+- Node, Deno, and browsers are not supported hosts.
+- Windows was not part of the local check. The verified host is Bun 1.3.14.
+- This repository has no public remote yet. Links to a homepage, issue tracker, or registry version would be invented, so they are omitted.
+- The OpenAPI document and the derived command map are GPL-3.0-or-later works from Dagu. See [NOTICE](./NOTICE).
+
+## Development
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md). The check command is `bun run check`.
+
+License: [GPL-3.0-or-later](./LICENSE).

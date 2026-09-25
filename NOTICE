@@ -1,0 +1,20 @@
+dagu-cli
+Copyright (c) 2026 dagu-cli contributors
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version. See LICENSE.
+
+spec/openapi.json is a verbatim OpenAPI document from Dagu
+(https://github.com/dagucloud/dagu). Dagu states that its source is
+GPL-3.0-or-later. The document's own info.version is 1.0.0. That field is the
+spec version, not a Dagu server release.
+
+spec/commands.json is derived from that document by scripts/command-map.py.
+The derived command map is covered by the same GPL-3.0-or-later terms.
+
+This program does not import or link Dagu's Go packages. It sends HTTP
+requests to a Dagu server that you configure. Dagu's separate commercial
+embedding license is not granted here and is not required to run this CLI
+against a Dagu server.

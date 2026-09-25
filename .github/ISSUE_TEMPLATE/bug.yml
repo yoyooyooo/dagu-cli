@@ -1,0 +1,25 @@
+name: Bug
+description: A command does not match the vendored OpenAPI operation it claims to call.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: The argv you ran. Do not include API keys, webhook tokens, or response bodies.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+      description: Exit code and the error.code field only.
+    validations:
+      required: true

@@ -80,19 +80,14 @@ const help = (tokens: readonly string[]): Envelope => {
     bucket.push(command);
     groups.set(next, bucket);
   }
-  return {
-    ok: true,
-    command: "help",
-    result: {
-      group: tokens.length ? tokens.join(" ") : "dagu-cli",
-      commands: [...groups.entries()].map(([name, bucket]) => {
-        const leaf = bucket.find((command) => command.argv.length === tokens.length + 1);
-        return leaf
-          ? { command: name, usage: usageLine(leaf), summary: leaf.summary }
-          : { command: name, usage: `dagu-cli ${[...tokens, name].join(" ")}`, summary: `${bucket.length} commands` };
-      }),
-    },
-  };
+  const entries = [...groups.entries()].map(([name, bucket]) => {
+    const leaf = bucket.find((command) => command.argv.length === tokens.length + 1);
+    return leaf
+      ? { command: name, usage: usageLine(leaf), summary: leaf.summary }
+      : { command: name, usage: `dagu-cli ${[...tokens, name].join(" ")}`, summary: `${bucket.length} commands` };
+  });
+  if (tokens.length === 0) entries.push({ command: "skills", usage: "dagu-cli skills list", summary: "List or load one layer of the command tree" });
+  return { ok: true, command: "help", result: { group: tokens.length ? tokens.join(" ") : "dagu-cli", commands: entries } };
 };
 
 const skillText = (name: string): Envelope => {
