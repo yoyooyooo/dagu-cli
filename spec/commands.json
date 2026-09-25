@@ -1,0 +1,4570 @@
+[
+  {
+    "argv": [
+      "admin",
+      "api-key",
+      "create"
+    ],
+    "operationId": "CreateAPIKey",
+    "skill": "admin",
+    "method": "POST",
+    "path": "/api-keys",
+    "summary": "Create API key",
+    "pathParams": [],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "api-key",
+      "delete"
+    ],
+    "operationId": "DeleteAPIKey",
+    "skill": "admin",
+    "method": "DELETE",
+    "path": "/api-keys/{keyId}",
+    "summary": "Delete API key",
+    "pathParams": [
+      "keyId"
+    ],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "api-key",
+      "get"
+    ],
+    "operationId": "GetAPIKey",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/api-keys/{keyId}",
+    "summary": "Get API key",
+    "pathParams": [
+      "keyId"
+    ],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "api-key",
+      "list"
+    ],
+    "operationId": "ListAPIKeys",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/api-keys",
+    "summary": "List all API keys",
+    "pathParams": [],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "api-key",
+      "update"
+    ],
+    "operationId": "UpdateAPIKey",
+    "skill": "admin",
+    "method": "PATCH",
+    "path": "/api-keys/{keyId}",
+    "summary": "Update API key",
+    "pathParams": [
+      "keyId"
+    ],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "audit",
+      "list"
+    ],
+    "operationId": "ListAuditLogs",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/audit",
+    "summary": "List audit log entries",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "category",
+      "action",
+      "source",
+      "surface",
+      "result",
+      "correlationId",
+      "resourceType",
+      "resourceId",
+      "workspace",
+      "credentialId",
+      "credentialType",
+      "mcpTool",
+      "ipAddress",
+      "userId",
+      "startTime",
+      "endTime",
+      "limit",
+      "offset"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "auth",
+      "login"
+    ],
+    "operationId": "Login",
+    "skill": "admin",
+    "method": "POST",
+    "path": "/auth/login",
+    "summary": "Authenticate user and obtain JWT token",
+    "pathParams": [],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "auth",
+      "me"
+    ],
+    "operationId": "GetCurrentUser",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/auth/me",
+    "summary": "Get current authenticated user",
+    "pathParams": [],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "auth",
+      "password"
+    ],
+    "operationId": "ChangePassword",
+    "skill": "admin",
+    "method": "POST",
+    "path": "/auth/change-password",
+    "summary": "Change current user's password",
+    "pathParams": [],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "auth",
+      "setup"
+    ],
+    "operationId": "Setup",
+    "skill": "admin",
+    "method": "POST",
+    "path": "/auth/setup",
+    "summary": "Create initial admin account",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "event",
+      "list"
+    ],
+    "operationId": "ListEventLogs",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/event-logs",
+    "summary": "List centralized event log entries",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "kind",
+      "type",
+      "dagName",
+      "dagRunId",
+      "attemptId",
+      "sessionId",
+      "userId",
+      "model",
+      "startTime",
+      "endTime",
+      "limit",
+      "paginationMode",
+      "offset",
+      "cursor"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "metrics",
+      "get"
+    ],
+    "operationId": "GetMetrics",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/metrics",
+    "summary": "Get Prometheus metrics",
+    "pathParams": [],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "remote-node",
+      "create"
+    ],
+    "operationId": "CreateRemoteNode",
+    "skill": "admin",
+    "method": "POST",
+    "path": "/remote-nodes",
+    "summary": "Create a new remote node",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "remote-node",
+      "delete"
+    ],
+    "operationId": "DeleteRemoteNode",
+    "skill": "admin",
+    "method": "DELETE",
+    "path": "/remote-nodes/{remoteNodeId}",
+    "summary": "Delete a remote node",
+    "pathParams": [
+      "remoteNodeId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "remote-node",
+      "get"
+    ],
+    "operationId": "GetRemoteNode",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/remote-nodes/{remoteNodeId}",
+    "summary": "Get a remote node",
+    "pathParams": [
+      "remoteNodeId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "remote-node",
+      "list"
+    ],
+    "operationId": "ListRemoteNodes",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/remote-nodes",
+    "summary": "List all remote nodes",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "remote-node",
+      "test"
+    ],
+    "operationId": "TestRemoteNodeConnection",
+    "skill": "admin",
+    "method": "POST",
+    "path": "/remote-nodes/{remoteNodeId}/test-connection",
+    "summary": "Test remote node connection",
+    "pathParams": [
+      "remoteNodeId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "remote-node",
+      "update"
+    ],
+    "operationId": "UpdateRemoteNode",
+    "skill": "admin",
+    "method": "PATCH",
+    "path": "/remote-nodes/{remoteNodeId}",
+    "summary": "Update a remote node",
+    "pathParams": [
+      "remoteNodeId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "settings",
+      "base",
+      "get"
+    ],
+    "operationId": "GetBaseConfig",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/settings/base-config",
+    "summary": "Get base configuration",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "settings",
+      "base",
+      "put"
+    ],
+    "operationId": "UpdateBaseConfig",
+    "skill": "admin",
+    "method": "PUT",
+    "path": "/settings/base-config",
+    "summary": "Update base configuration",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "settings",
+      "workspace",
+      "get"
+    ],
+    "operationId": "GetWorkspaceBaseConfig",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/settings/workspaces/{workspaceName}/base-config",
+    "summary": "Get workspace base configuration",
+    "pathParams": [
+      "workspaceName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "settings",
+      "workspace",
+      "put"
+    ],
+    "operationId": "UpdateWorkspaceBaseConfig",
+    "skill": "admin",
+    "method": "PUT",
+    "path": "/settings/workspaces/{workspaceName}/base-config",
+    "summary": "Update workspace base configuration",
+    "pathParams": [
+      "workspaceName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "system",
+      "coordinator"
+    ],
+    "operationId": "GetCoordinatorStatus",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/services/coordinator",
+    "summary": "Get coordinator service status",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "system",
+      "health"
+    ],
+    "operationId": "GetHealthStatus",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/health",
+    "summary": "Check server health status",
+    "pathParams": [],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "system",
+      "license",
+      "activate"
+    ],
+    "operationId": "ActivateLicense",
+    "skill": "admin",
+    "method": "POST",
+    "path": "/license/activate",
+    "summary": "Activate a license key",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "system",
+      "license",
+      "deactivate"
+    ],
+    "operationId": "DeactivateLicense",
+    "skill": "admin",
+    "method": "POST",
+    "path": "/license/deactivate",
+    "summary": "Deactivate the current license",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "system",
+      "license",
+      "status"
+    ],
+    "operationId": "GetLicenseStatus",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/license/status",
+    "summary": "Get license status",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "system",
+      "openapi"
+    ],
+    "operationId": "GetOpenapiJson",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/openapi.json",
+    "summary": "Get the OpenAPI document",
+    "pathParams": [],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "system",
+      "resources"
+    ],
+    "operationId": "GetResourceHistory",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/services/resources/history",
+    "summary": "Get resource usage history",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "duration"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "system",
+      "scheduler"
+    ],
+    "operationId": "GetSchedulerStatus",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/services/scheduler",
+    "summary": "Get scheduler service status",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "system",
+      "scheduler",
+      "pause",
+      "get"
+    ],
+    "operationId": "GetSchedulerPauseState",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/services/scheduler/pause",
+    "summary": "Get scheduler pause state",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "system",
+      "scheduler",
+      "pause",
+      "put"
+    ],
+    "operationId": "UpdateSchedulerPauseState",
+    "skill": "admin",
+    "method": "POST",
+    "path": "/services/scheduler/pause",
+    "summary": "Pause or resume the scheduler",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "system",
+      "tunnel"
+    ],
+    "operationId": "GetTunnelStatus",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/services/tunnel",
+    "summary": "Get tunnel service status",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "system",
+      "workers"
+    ],
+    "operationId": "GetWorkers",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/workers",
+    "summary": "List distributed workers",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "user",
+      "create"
+    ],
+    "operationId": "CreateUser",
+    "skill": "admin",
+    "method": "POST",
+    "path": "/users",
+    "summary": "Create a new user",
+    "pathParams": [],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "user",
+      "delete"
+    ],
+    "operationId": "DeleteUser",
+    "skill": "admin",
+    "method": "DELETE",
+    "path": "/users/{userId}",
+    "summary": "Delete user",
+    "pathParams": [
+      "userId"
+    ],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "user",
+      "get"
+    ],
+    "operationId": "GetUser",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/users/{userId}",
+    "summary": "Get user by ID",
+    "pathParams": [
+      "userId"
+    ],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "user",
+      "list"
+    ],
+    "operationId": "ListUsers",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/users",
+    "summary": "List all users",
+    "pathParams": [],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "user",
+      "password"
+    ],
+    "operationId": "ResetUserPassword",
+    "skill": "admin",
+    "method": "POST",
+    "path": "/users/{userId}/reset-password",
+    "summary": "Reset user's password",
+    "pathParams": [
+      "userId"
+    ],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "user",
+      "update"
+    ],
+    "operationId": "UpdateUser",
+    "skill": "admin",
+    "method": "PATCH",
+    "path": "/users/{userId}",
+    "summary": "Update user",
+    "pathParams": [
+      "userId"
+    ],
+    "queryParams": [],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "view",
+      "create"
+    ],
+    "operationId": "CreateView",
+    "skill": "admin",
+    "method": "POST",
+    "path": "/views",
+    "summary": "Create a view",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "view",
+      "delete"
+    ],
+    "operationId": "DeleteView",
+    "skill": "admin",
+    "method": "DELETE",
+    "path": "/views/{viewId}",
+    "summary": "Delete a view",
+    "pathParams": [
+      "viewId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "view",
+      "get"
+    ],
+    "operationId": "GetView",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/views/{viewId}",
+    "summary": "Get a view",
+    "pathParams": [
+      "viewId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "view",
+      "list"
+    ],
+    "operationId": "ListViews",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/views",
+    "summary": "List saved views",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "view",
+      "update"
+    ],
+    "operationId": "UpdateView",
+    "skill": "admin",
+    "method": "PUT",
+    "path": "/views/{viewId}",
+    "summary": "Update a view",
+    "pathParams": [
+      "viewId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "workspace",
+      "create"
+    ],
+    "operationId": "CreateWorkspace",
+    "skill": "admin",
+    "method": "POST",
+    "path": "/workspaces",
+    "summary": "Create a workspace",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "admin",
+      "workspace",
+      "delete"
+    ],
+    "operationId": "DeleteWorkspace",
+    "skill": "admin",
+    "method": "DELETE",
+    "path": "/workspaces/{workspaceId}",
+    "summary": "Delete a workspace",
+    "pathParams": [
+      "workspaceId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "workspace",
+      "get"
+    ],
+    "operationId": "GetWorkspace",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/workspaces/{workspaceId}",
+    "summary": "Get workspace by ID",
+    "pathParams": [
+      "workspaceId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "workspace",
+      "list"
+    ],
+    "operationId": "ListWorkspaces",
+    "skill": "admin",
+    "method": "GET",
+    "path": "/workspaces",
+    "summary": "List all workspaces",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "admin",
+      "workspace",
+      "update"
+    ],
+    "operationId": "UpdateWorkspace",
+    "skill": "admin",
+    "method": "PATCH",
+    "path": "/workspaces/{workspaceId}",
+    "summary": "Update a workspace",
+    "pathParams": [
+      "workspaceId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "dag",
+      "create"
+    ],
+    "operationId": "CreateNewDAG",
+    "skill": "core",
+    "method": "POST",
+    "path": "/dags",
+    "summary": "Create a new DAG definition",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "dag",
+      "delete"
+    ],
+    "operationId": "DeleteDAG",
+    "skill": "core",
+    "method": "DELETE",
+    "path": "/dags/{fileName}",
+    "summary": "Delete an existing DAG",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "dag",
+      "enqueue"
+    ],
+    "operationId": "EnqueueDAGDAGRun",
+    "skill": "core",
+    "method": "POST",
+    "path": "/dags/{fileName}/enqueue",
+    "summary": "Enqueue a DAG-run from DAG",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "dag",
+      "get"
+    ],
+    "operationId": "GetDAGDetails",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dags/{fileName}",
+    "summary": "Retrieve comprehensive DAG information",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "dag",
+      "history"
+    ],
+    "operationId": "GetDAGDAGRunHistory",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dags/{fileName}/dag-runs",
+    "summary": "Retrieve execution history of a DAG",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "dag",
+      "history",
+      "get"
+    ],
+    "operationId": "GetDAGDAGRunDetails",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dags/{fileName}/dag-runs/{dagRunId}",
+    "summary": "Get detailed status of a specific DAG-run",
+    "pathParams": [
+      "fileName",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "dag",
+      "labels"
+    ],
+    "operationId": "GetAllDAGLabels",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dags/labels",
+    "summary": "List all available DAG labels",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "dag",
+      "list"
+    ],
+    "operationId": "ListDAGs",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dags",
+    "summary": "List all available DAGs",
+    "pathParams": [],
+    "queryParams": [
+      "page",
+      "perPage",
+      "remoteNode",
+      "workspace",
+      "name",
+      "labels",
+      "active",
+      "tags",
+      "sort",
+      "order"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "dag",
+      "rename"
+    ],
+    "operationId": "RenameDAG",
+    "skill": "core",
+    "method": "POST",
+    "path": "/dags/{fileName}/rename",
+    "summary": "Change DAG file ID",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "dag",
+      "search"
+    ],
+    "operationId": "SearchDAGs",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dags/search",
+    "summary": "Search DAGs",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "q"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "dag",
+      "settings",
+      "delete"
+    ],
+    "operationId": "DeleteDAGSettings",
+    "skill": "core",
+    "method": "DELETE",
+    "path": "/dags/{fileName}/settings",
+    "summary": "Delete DAG settings",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "dag",
+      "settings",
+      "get"
+    ],
+    "operationId": "GetDAGSettings",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dags/{fileName}/settings",
+    "summary": "Get DAG settings",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "dag",
+      "settings",
+      "put"
+    ],
+    "operationId": "UpdateDAGSettings",
+    "skill": "core",
+    "method": "PUT",
+    "path": "/dags/{fileName}/settings",
+    "summary": "Update DAG settings",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "dag",
+      "spec",
+      "get"
+    ],
+    "operationId": "GetDAGSpec",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dags/{fileName}/spec",
+    "summary": "Retrieve DAG specification",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "dag",
+      "spec",
+      "put"
+    ],
+    "operationId": "UpdateDAGSpec",
+    "skill": "core",
+    "method": "PUT",
+    "path": "/dags/{fileName}/spec",
+    "summary": "Update DAG spec",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "dag",
+      "start"
+    ],
+    "operationId": "ExecuteDAG",
+    "skill": "core",
+    "method": "POST",
+    "path": "/dags/{fileName}/start",
+    "summary": "Create and execute a DAG-run from DAG",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "dag",
+      "start",
+      "sync"
+    ],
+    "operationId": "ExecuteDAGSync",
+    "skill": "core",
+    "method": "POST",
+    "path": "/dags/{fileName}/start-sync",
+    "summary": "Execute DAG synchronously and wait for completion",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "dag",
+      "stop"
+    ],
+    "operationId": "StopAllDAGRuns",
+    "skill": "core",
+    "method": "POST",
+    "path": "/dags/{fileName}/stop-all",
+    "summary": "Stop all running instances of a DAG",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "dag",
+      "suspend"
+    ],
+    "operationId": "UpdateDAGSuspensionState",
+    "skill": "core",
+    "method": "POST",
+    "path": "/dags/{fileName}/suspend",
+    "summary": "Toggle DAG suspension state",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "dag",
+      "tags"
+    ],
+    "operationId": "GetAllDAGTags",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dags/tags",
+    "summary": "List all available DAG tags",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "dag",
+      "validate"
+    ],
+    "operationId": "ValidateDAGSpec",
+    "skill": "core",
+    "method": "POST",
+    "path": "/dags/validate",
+    "summary": "Validate a DAG specification",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "incident",
+      "dag",
+      "delete"
+    ],
+    "operationId": "DeleteDAGIncidents",
+    "skill": "incident",
+    "method": "DELETE",
+    "path": "/dags/{fileName}/incidents",
+    "summary": "Delete DAG incident routing",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "incident",
+      "dag",
+      "get"
+    ],
+    "operationId": "GetDAGIncidents",
+    "skill": "incident",
+    "method": "GET",
+    "path": "/dags/{fileName}/incidents",
+    "summary": "Get DAG incident routing",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "incident",
+      "dag",
+      "put"
+    ],
+    "operationId": "UpdateDAGIncidents",
+    "skill": "incident",
+    "method": "PUT",
+    "path": "/dags/{fileName}/incidents",
+    "summary": "Update DAG incident routing",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "incident",
+      "policy",
+      "global",
+      "get"
+    ],
+    "operationId": "GetGlobalIncidentPolicies",
+    "skill": "incident",
+    "method": "GET",
+    "path": "/incident-policies/global",
+    "summary": "Get global incident routing",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "incident",
+      "policy",
+      "global",
+      "put"
+    ],
+    "operationId": "UpdateGlobalIncidentPolicies",
+    "skill": "incident",
+    "method": "PUT",
+    "path": "/incident-policies/global",
+    "summary": "Update global incident routing",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "incident",
+      "policy",
+      "list"
+    ],
+    "operationId": "ListIncidentPolicies",
+    "skill": "incident",
+    "method": "GET",
+    "path": "/incident-policies",
+    "summary": "List incident routing",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "incident",
+      "policy",
+      "workspace",
+      "get"
+    ],
+    "operationId": "GetWorkspaceIncidentPolicies",
+    "skill": "incident",
+    "method": "GET",
+    "path": "/incident-policies/workspaces/{workspaceName}",
+    "summary": "Get workspace incident routing",
+    "pathParams": [
+      "workspaceName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "incident",
+      "policy",
+      "workspace",
+      "put"
+    ],
+    "operationId": "UpdateWorkspaceIncidentPolicies",
+    "skill": "incident",
+    "method": "PUT",
+    "path": "/incident-policies/workspaces/{workspaceName}",
+    "summary": "Update workspace incident routing",
+    "pathParams": [
+      "workspaceName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "incident",
+      "provider",
+      "create"
+    ],
+    "operationId": "CreateIncidentProvider",
+    "skill": "incident",
+    "method": "POST",
+    "path": "/incident-providers",
+    "summary": "Create incident provider",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "incident",
+      "provider",
+      "delete"
+    ],
+    "operationId": "DeleteIncidentProvider",
+    "skill": "incident",
+    "method": "DELETE",
+    "path": "/incident-providers/{providerId}",
+    "summary": "Delete incident provider",
+    "pathParams": [
+      "providerId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "incident",
+      "provider",
+      "get"
+    ],
+    "operationId": "GetIncidentProvider",
+    "skill": "incident",
+    "method": "GET",
+    "path": "/incident-providers/{providerId}",
+    "summary": "Get incident provider",
+    "pathParams": [
+      "providerId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "incident",
+      "provider",
+      "list"
+    ],
+    "operationId": "ListIncidentProviders",
+    "skill": "incident",
+    "method": "GET",
+    "path": "/incident-providers",
+    "summary": "List incident providers",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "incident",
+      "provider",
+      "put"
+    ],
+    "operationId": "UpdateIncidentProvider",
+    "skill": "incident",
+    "method": "PUT",
+    "path": "/incident-providers/{providerId}",
+    "summary": "Update incident provider",
+    "pathParams": [
+      "providerId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "incident",
+      "provider",
+      "test"
+    ],
+    "operationId": "TestIncidentProvider",
+    "skill": "incident",
+    "method": "POST",
+    "path": "/incident-providers/{providerId}/test",
+    "summary": "Send a test incident",
+    "pathParams": [
+      "providerId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "notify",
+      "channel",
+      "create"
+    ],
+    "operationId": "CreateNotificationChannel",
+    "skill": "notify",
+    "method": "POST",
+    "path": "/notification-channels",
+    "summary": "Create notification channel",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "notify",
+      "channel",
+      "delete"
+    ],
+    "operationId": "DeleteNotificationChannel",
+    "skill": "notify",
+    "method": "DELETE",
+    "path": "/notification-channels/{channelId}",
+    "summary": "Delete notification channel",
+    "pathParams": [
+      "channelId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "notify",
+      "channel",
+      "get"
+    ],
+    "operationId": "GetNotificationChannel",
+    "skill": "notify",
+    "method": "GET",
+    "path": "/notification-channels/{channelId}",
+    "summary": "Get notification channel",
+    "pathParams": [
+      "channelId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "notify",
+      "channel",
+      "list"
+    ],
+    "operationId": "ListNotificationChannels",
+    "skill": "notify",
+    "method": "GET",
+    "path": "/notification-channels",
+    "summary": "List notification channels",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "notify",
+      "channel",
+      "put"
+    ],
+    "operationId": "UpdateNotificationChannel",
+    "skill": "notify",
+    "method": "PUT",
+    "path": "/notification-channels/{channelId}",
+    "summary": "Update notification channel",
+    "pathParams": [
+      "channelId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "notify",
+      "channel",
+      "test"
+    ],
+    "operationId": "TestNotificationChannel",
+    "skill": "notify",
+    "method": "POST",
+    "path": "/notification-channels/{channelId}/test",
+    "summary": "Test notification channel",
+    "pathParams": [
+      "channelId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "notify",
+      "dag",
+      "delete"
+    ],
+    "operationId": "DeleteDAGNotifications",
+    "skill": "notify",
+    "method": "DELETE",
+    "path": "/dags/{fileName}/notifications",
+    "summary": "Delete DAG notification settings",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "notify",
+      "dag",
+      "get"
+    ],
+    "operationId": "GetDAGNotifications",
+    "skill": "notify",
+    "method": "GET",
+    "path": "/dags/{fileName}/notifications",
+    "summary": "Get DAG notification settings",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "notify",
+      "dag",
+      "put"
+    ],
+    "operationId": "UpdateDAGNotifications",
+    "skill": "notify",
+    "method": "PUT",
+    "path": "/dags/{fileName}/notifications",
+    "summary": "Update DAG notification settings",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "notify",
+      "dag",
+      "test"
+    ],
+    "operationId": "TestDAGNotifications",
+    "skill": "notify",
+    "method": "POST",
+    "path": "/dags/{fileName}/notifications/test",
+    "summary": "Send a test DAG notification",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "notify",
+      "route",
+      "global",
+      "get"
+    ],
+    "operationId": "GetGlobalNotificationRoutes",
+    "skill": "notify",
+    "method": "GET",
+    "path": "/notification-routes/global",
+    "summary": "Get global notification routes",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "notify",
+      "route",
+      "global",
+      "put"
+    ],
+    "operationId": "UpdateGlobalNotificationRoutes",
+    "skill": "notify",
+    "method": "PUT",
+    "path": "/notification-routes/global",
+    "summary": "Update global notification routes",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "notify",
+      "route",
+      "list"
+    ],
+    "operationId": "ListNotificationRoutes",
+    "skill": "notify",
+    "method": "GET",
+    "path": "/notification-routes",
+    "summary": "List notification routes",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "notify",
+      "route",
+      "workspace",
+      "get"
+    ],
+    "operationId": "GetWorkspaceNotificationRoutes",
+    "skill": "notify",
+    "method": "GET",
+    "path": "/notification-routes/workspaces/{workspaceName}",
+    "summary": "Get workspace notification routes",
+    "pathParams": [
+      "workspaceName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "notify",
+      "route",
+      "workspace",
+      "put"
+    ],
+    "operationId": "UpdateWorkspaceNotificationRoutes",
+    "skill": "notify",
+    "method": "PUT",
+    "path": "/notification-routes/workspaces/{workspaceName}",
+    "summary": "Update workspace notification routes",
+    "pathParams": [
+      "workspaceName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "notify",
+      "settings",
+      "get"
+    ],
+    "operationId": "GetNotificationSettings",
+    "skill": "notify",
+    "method": "GET",
+    "path": "/notification-settings",
+    "summary": "Get notification settings",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "notify",
+      "settings",
+      "put"
+    ],
+    "operationId": "UpdateNotificationSettings",
+    "skill": "notify",
+    "method": "PUT",
+    "path": "/notification-settings",
+    "summary": "Update notification settings",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "profile",
+      "create"
+    ],
+    "operationId": "CreateRuntimeProfile",
+    "skill": "profile",
+    "method": "POST",
+    "path": "/profiles",
+    "summary": "Create runtime profile",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "profile",
+      "delete"
+    ],
+    "operationId": "DeleteRuntimeProfile",
+    "skill": "profile",
+    "method": "DELETE",
+    "path": "/profiles/{profileName}",
+    "summary": "Delete runtime profile",
+    "pathParams": [
+      "profileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "profile",
+      "entry",
+      "delete"
+    ],
+    "operationId": "DeleteRuntimeProfileEntry",
+    "skill": "profile",
+    "method": "DELETE",
+    "path": "/profiles/{profileName}/entries/{key}",
+    "summary": "Delete runtime profile entry",
+    "pathParams": [
+      "profileName",
+      "key"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "profile",
+      "get"
+    ],
+    "operationId": "GetRuntimeProfile",
+    "skill": "profile",
+    "method": "GET",
+    "path": "/profiles/{profileName}",
+    "summary": "Get runtime profile",
+    "pathParams": [
+      "profileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "profile",
+      "global",
+      "entry",
+      "delete"
+    ],
+    "operationId": "DeleteGlobalRuntimeProfileDefaultEntry",
+    "skill": "profile",
+    "method": "DELETE",
+    "path": "/profiles/_global/entries/{key}",
+    "summary": "Delete global runtime profile default entry",
+    "pathParams": [
+      "key"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "profile",
+      "global",
+      "get"
+    ],
+    "operationId": "GetGlobalRuntimeProfileDefaults",
+    "skill": "profile",
+    "method": "GET",
+    "path": "/profiles/_global",
+    "summary": "Get global runtime profile defaults",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "profile",
+      "global",
+      "secret",
+      "put"
+    ],
+    "operationId": "SetGlobalRuntimeProfileDefaultSecret",
+    "skill": "profile",
+    "method": "PUT",
+    "path": "/profiles/_global/secrets/{key}",
+    "summary": "Set global runtime profile default secret",
+    "pathParams": [
+      "key"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "profile",
+      "global",
+      "update"
+    ],
+    "operationId": "UpdateGlobalRuntimeProfileDefaults",
+    "skill": "profile",
+    "method": "PATCH",
+    "path": "/profiles/_global",
+    "summary": "Update global runtime profile defaults",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "profile",
+      "global",
+      "variable",
+      "put"
+    ],
+    "operationId": "SetGlobalRuntimeProfileDefaultVariable",
+    "skill": "profile",
+    "method": "PUT",
+    "path": "/profiles/_global/variables/{key}",
+    "summary": "Set global runtime profile default variable",
+    "pathParams": [
+      "key"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "profile",
+      "list"
+    ],
+    "operationId": "ListRuntimeProfiles",
+    "skill": "profile",
+    "method": "GET",
+    "path": "/profiles",
+    "summary": "List runtime profiles",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "profile",
+      "secret",
+      "put"
+    ],
+    "operationId": "SetRuntimeProfileSecret",
+    "skill": "profile",
+    "method": "PUT",
+    "path": "/profiles/{profileName}/secrets/{key}",
+    "summary": "Set runtime profile secret",
+    "pathParams": [
+      "profileName",
+      "key"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "profile",
+      "update"
+    ],
+    "operationId": "UpdateRuntimeProfile",
+    "skill": "profile",
+    "method": "PATCH",
+    "path": "/profiles/{profileName}",
+    "summary": "Update runtime profile metadata",
+    "pathParams": [
+      "profileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "profile",
+      "variable",
+      "put"
+    ],
+    "operationId": "SetRuntimeProfileVariable",
+    "skill": "profile",
+    "method": "PUT",
+    "path": "/profiles/{profileName}/variables/{key}",
+    "summary": "Set runtime profile variable",
+    "pathParams": [
+      "profileName",
+      "key"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "profile",
+      "workspace",
+      "entry",
+      "delete"
+    ],
+    "operationId": "DeleteWorkspaceRuntimeProfileDefaultEntry",
+    "skill": "profile",
+    "method": "DELETE",
+    "path": "/profiles/_workspaces/{workspaceName}/entries/{key}",
+    "summary": "Delete workspace runtime profile default entry",
+    "pathParams": [
+      "workspaceName",
+      "key"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "profile",
+      "workspace",
+      "get"
+    ],
+    "operationId": "GetWorkspaceRuntimeProfileDefaults",
+    "skill": "profile",
+    "method": "GET",
+    "path": "/profiles/_workspaces/{workspaceName}",
+    "summary": "Get workspace runtime profile defaults",
+    "pathParams": [
+      "workspaceName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "profile",
+      "workspace",
+      "secret",
+      "put"
+    ],
+    "operationId": "SetWorkspaceRuntimeProfileDefaultSecret",
+    "skill": "profile",
+    "method": "PUT",
+    "path": "/profiles/_workspaces/{workspaceName}/secrets/{key}",
+    "summary": "Set workspace runtime profile default secret",
+    "pathParams": [
+      "workspaceName",
+      "key"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "profile",
+      "workspace",
+      "update"
+    ],
+    "operationId": "UpdateWorkspaceRuntimeProfileDefaults",
+    "skill": "profile",
+    "method": "PATCH",
+    "path": "/profiles/_workspaces/{workspaceName}",
+    "summary": "Update workspace runtime profile defaults",
+    "pathParams": [
+      "workspaceName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "profile",
+      "workspace",
+      "variable",
+      "put"
+    ],
+    "operationId": "SetWorkspaceRuntimeProfileDefaultVariable",
+    "skill": "profile",
+    "method": "PUT",
+    "path": "/profiles/_workspaces/{workspaceName}/variables/{key}",
+    "summary": "Set workspace runtime profile default variable",
+    "pathParams": [
+      "workspaceName",
+      "key"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "queue",
+      "get"
+    ],
+    "operationId": "GetQueue",
+    "skill": "queue",
+    "method": "GET",
+    "path": "/queues/{name}",
+    "summary": "Get summary information for a specific queue",
+    "pathParams": [
+      "name"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "queue",
+      "items"
+    ],
+    "operationId": "ListQueueItems",
+    "skill": "queue",
+    "method": "GET",
+    "path": "/queues/{name}/items",
+    "summary": "Get queued items for a specific queue",
+    "pathParams": [
+      "name"
+    ],
+    "queryParams": [
+      "remoteNode",
+      "limit",
+      "cursor"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "queue",
+      "list"
+    ],
+    "operationId": "ListQueues",
+    "skill": "queue",
+    "method": "GET",
+    "path": "/queues",
+    "summary": "List all execution queues with summary statistics",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "artifact",
+      "download"
+    ],
+    "operationId": "DownloadDAGRunArtifact",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/artifacts/download",
+    "summary": "Download an artifact for a DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode",
+      "path"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "artifact",
+      "get"
+    ],
+    "operationId": "GetDAGRunArtifacts",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/artifacts",
+    "summary": "List artifacts for a DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode",
+      "recursive"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "artifact",
+      "list"
+    ],
+    "operationId": "ListArtifacts",
+    "skill": "run",
+    "method": "GET",
+    "path": "/artifacts",
+    "summary": "List recent DAG-run artifacts",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "fromDate",
+      "toDate",
+      "name",
+      "fileName",
+      "limit",
+      "cursor"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "artifact",
+      "preview"
+    ],
+    "operationId": "GetDAGRunArtifactPreview",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/artifacts/preview",
+    "summary": "Preview an artifact for a DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode",
+      "path"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "delete"
+    ],
+    "operationId": "DeleteDAGRun",
+    "skill": "core",
+    "method": "DELETE",
+    "path": "/dag-runs/{name}/{dagRunId}",
+    "summary": "Delete a DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "dequeue"
+    ],
+    "operationId": "DequeueDAGRun",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/dequeue",
+    "summary": "Dequeue a queued DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "edit-retry"
+    ],
+    "operationId": "EditRetryDAGRun",
+    "skill": "core",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/edit-retry",
+    "summary": "Run edited DAG retry",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "edit-retry",
+      "preview"
+    ],
+    "operationId": "PreviewEditRetryDAGRun",
+    "skill": "core",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/edit-retry/preview",
+    "summary": "Preview edited DAG-run retry",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "enqueue",
+      "spec"
+    ],
+    "operationId": "EnqueueDAGRunFromSpec",
+    "skill": "core",
+    "method": "POST",
+    "path": "/dag-runs/enqueue",
+    "summary": "Enqueue a DAG-run from inline spec",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "get"
+    ],
+    "operationId": "GetDAGRunDetails",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}",
+    "summary": "Retrieve detailed status of a DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "human",
+      "complete"
+    ],
+    "operationId": "CompleteHumanTask",
+    "skill": "run",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/human-tasks/{stepId}/complete",
+    "summary": "Complete a waiting human task",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "stepId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "human",
+      "resume"
+    ],
+    "operationId": "ResumeHumanTaskDAGRun",
+    "skill": "run",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/human-tasks/resume",
+    "summary": "Queue a completed human-task checkpoint for resume",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "list"
+    ],
+    "operationId": "ListDAGRuns",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dag-runs",
+    "summary": "List all DAG-runs",
+    "pathParams": [],
+    "queryParams": [
+      "status",
+      "fromDate",
+      "toDate",
+      "dagRunId",
+      "limit",
+      "cursor",
+      "remoteNode",
+      "workspace",
+      "name",
+      "labels",
+      "tags"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "list",
+      "dag"
+    ],
+    "operationId": "ListDAGRunsByName",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dag-runs/{name}",
+    "summary": "List all DAG-runs with a specific name",
+    "pathParams": [
+      "name"
+    ],
+    "queryParams": [
+      "status",
+      "fromDate",
+      "toDate",
+      "dagRunId",
+      "limit",
+      "cursor",
+      "remoteNode",
+      "workspace"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "log"
+    ],
+    "operationId": "GetDAGRunLog",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/log",
+    "summary": "Retrieve full execution log of a DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode",
+      "tail",
+      "head",
+      "offset",
+      "limit"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "log",
+      "download"
+    ],
+    "operationId": "DownloadDAGRunLog",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/log/download",
+    "summary": "Download full execution log of a DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "outputs"
+    ],
+    "operationId": "GetDAGRunOutputs",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/outputs",
+    "summary": "Retrieve collected outputs from a DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "reschedule"
+    ],
+    "operationId": "RescheduleDAGRun",
+    "skill": "core",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/reschedule",
+    "summary": "Reschedule DAG-run with a new run ID",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "retry"
+    ],
+    "operationId": "RetryDAGRun",
+    "skill": "core",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/retry",
+    "summary": "Retry DAG-run execution",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "spec"
+    ],
+    "operationId": "GetDAGRunSpec",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/spec",
+    "summary": "Retrieve DAG specification for a DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "start",
+      "spec"
+    ],
+    "operationId": "ExecuteDAGRunFromSpec",
+    "skill": "core",
+    "method": "POST",
+    "path": "/dag-runs",
+    "summary": "Create and execute a DAG-run from inline spec",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "step",
+      "agent",
+      "respond"
+    ],
+    "operationId": "RespondDAGRunStepAgentInteraction",
+    "skill": "run",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/steps/{stepName}/agent-interactions/{interactionId}/respond",
+    "summary": "Respond to a managed-agent interaction",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "stepName",
+      "interactionId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "step",
+      "agent",
+      "restart"
+    ],
+    "operationId": "RestartDAGRunStepAgentSession",
+    "skill": "run",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/steps/{stepName}/agent-session/restart",
+    "summary": "Restart a managed-agent session cleanly",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "step",
+      "approve"
+    ],
+    "operationId": "ApproveDAGRunStep",
+    "skill": "run",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/steps/{stepName}/approve",
+    "summary": "Approve a waiting step",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "step",
+      "log"
+    ],
+    "operationId": "GetDAGRunStepLog",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/steps/{stepName}/log",
+    "summary": "Retrieve log for a specific step in a DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode",
+      "tail",
+      "head",
+      "offset",
+      "limit",
+      "stream"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "step",
+      "log",
+      "download"
+    ],
+    "operationId": "DownloadDAGRunStepLog",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/steps/{stepName}/log/download",
+    "summary": "Download log for a specific step in a DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode",
+      "stream"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "step",
+      "logs",
+      "download"
+    ],
+    "operationId": "DownloadDAGRunStepLogs",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/steps/log/download",
+    "summary": "Download step logs as ZIP of a DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "step",
+      "logs",
+      "form"
+    ],
+    "operationId": "DownloadDAGRunStepLogsForm",
+    "skill": "run",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/steps/log/download",
+    "summary": "Download step logs as ZIP of a DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "form"
+  },
+  {
+    "argv": [
+      "run",
+      "step",
+      "messages"
+    ],
+    "operationId": "GetDAGRunStepMessages",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/steps/{stepName}/messages",
+    "summary": "Retrieve chat messages for a step",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "step",
+      "push-back"
+    ],
+    "operationId": "PushBackDAGRunStep",
+    "skill": "run",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/steps/{stepName}/push-back",
+    "summary": "Push back a waiting step for re-execution with feedback",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "step",
+      "reject"
+    ],
+    "operationId": "RejectDAGRunStep",
+    "skill": "run",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/steps/{stepName}/reject",
+    "summary": "Reject a waiting step",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "step",
+      "status"
+    ],
+    "operationId": "UpdateDAGRunStepStatus",
+    "skill": "run",
+    "method": "PATCH",
+    "path": "/dag-runs/{name}/{dagRunId}/steps/{stepName}/status",
+    "summary": "Manually update a step's execution status",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "stop"
+    ],
+    "operationId": "TerminateDAGRun",
+    "skill": "core",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/stop",
+    "summary": "Terminate or cancel a DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "artifact",
+      "download"
+    ],
+    "operationId": "DownloadSubDAGRunArtifact",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/artifacts/download",
+    "summary": "Download an artifact for a sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId"
+    ],
+    "queryParams": [
+      "remoteNode",
+      "path"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "artifact",
+      "get"
+    ],
+    "operationId": "GetSubDAGRunArtifacts",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/artifacts",
+    "summary": "List artifacts for a sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId"
+    ],
+    "queryParams": [
+      "remoteNode",
+      "recursive"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "artifact",
+      "preview"
+    ],
+    "operationId": "GetSubDAGRunArtifactPreview",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/artifacts/preview",
+    "summary": "Preview an artifact for a sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId"
+    ],
+    "queryParams": [
+      "remoteNode",
+      "path"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "get"
+    ],
+    "operationId": "GetSubDAGRunDetails",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}",
+    "summary": "Retrieve detailed status of a sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "list"
+    ],
+    "operationId": "GetSubDAGRuns",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs",
+    "summary": "Get sub DAG runs with timing info",
+    "pathParams": [
+      "name",
+      "dagRunId"
+    ],
+    "queryParams": [
+      "remoteNode",
+      "parentSubDAGRunId"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "log"
+    ],
+    "operationId": "GetSubDAGRunLog",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/log",
+    "summary": "Retrieve log for a specific sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId"
+    ],
+    "queryParams": [
+      "remoteNode",
+      "tail",
+      "head",
+      "offset",
+      "limit"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "log",
+      "download"
+    ],
+    "operationId": "DownloadSubDAGRunLog",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/log/download",
+    "summary": "Download log for a specific sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "spec"
+    ],
+    "operationId": "GetSubDAGRunSpec",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/spec",
+    "summary": "Get Sub-DAG Run Specification",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "step",
+      "agent",
+      "respond"
+    ],
+    "operationId": "RespondSubDAGRunStepAgentInteraction",
+    "skill": "run",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/steps/{stepName}/agent-interactions/{interactionId}/respond",
+    "summary": "Respond to a managed-agent interaction in a sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId",
+      "stepName",
+      "interactionId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "step",
+      "agent",
+      "restart"
+    ],
+    "operationId": "RestartSubDAGRunStepAgentSession",
+    "skill": "run",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/steps/{stepName}/agent-session/restart",
+    "summary": "Restart a managed-agent session cleanly in a sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "step",
+      "approve"
+    ],
+    "operationId": "ApproveSubDAGRunStep",
+    "skill": "run",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/steps/{stepName}/approve",
+    "summary": "Approve a waiting step in a sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "step",
+      "log"
+    ],
+    "operationId": "GetSubDAGRunStepLog",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/steps/{stepName}/log",
+    "summary": "Retrieve log for a specific step in a sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode",
+      "tail",
+      "head",
+      "offset",
+      "limit",
+      "stream"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "step",
+      "log",
+      "download"
+    ],
+    "operationId": "DownloadSubDAGRunStepLog",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/steps/{stepName}/log/download",
+    "summary": "Download log for a specific step in a sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode",
+      "stream"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "step",
+      "logs",
+      "download"
+    ],
+    "operationId": "DownloadSubDAGRunStepLogs",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/steps/log/download",
+    "summary": "Download step logs as ZIP of a sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "step",
+      "logs",
+      "form"
+    ],
+    "operationId": "DownloadSubDAGRunStepLogsForm",
+    "skill": "run",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/steps/log/download",
+    "summary": "Download step logs as ZIP of a sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "form"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "step",
+      "messages"
+    ],
+    "operationId": "GetSubDAGRunStepMessages",
+    "skill": "run",
+    "method": "GET",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/steps/{stepName}/messages",
+    "summary": "Retrieve chat messages for a step in a sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "step",
+      "push-back"
+    ],
+    "operationId": "PushBackSubDAGRunStep",
+    "skill": "run",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/steps/{stepName}/push-back",
+    "summary": "Push back a waiting step in a sub DAG-run for re-execution with feedback",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "step",
+      "reject"
+    ],
+    "operationId": "RejectSubDAGRunStep",
+    "skill": "run",
+    "method": "POST",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/steps/{stepName}/reject",
+    "summary": "Reject a waiting step in a sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "run",
+      "sub",
+      "step",
+      "status"
+    ],
+    "operationId": "UpdateSubDAGRunStepStatus",
+    "skill": "run",
+    "method": "PATCH",
+    "path": "/dag-runs/{name}/{dagRunId}/sub-dag-runs/{subDAGRunId}/steps/{stepName}/status",
+    "summary": "Manually update a step's execution status in a sub DAG-run",
+    "pathParams": [
+      "name",
+      "dagRunId",
+      "subDAGRunId",
+      "stepName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "search",
+      "dag"
+    ],
+    "operationId": "SearchDAGFeed",
+    "skill": "search",
+    "method": "GET",
+    "path": "/search/dags",
+    "summary": "Search DAGs",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "q",
+      "labels",
+      "cursor",
+      "limit"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "search",
+      "dag",
+      "matches"
+    ],
+    "operationId": "SearchDagMatches",
+    "skill": "search",
+    "method": "GET",
+    "path": "/search/dags/{fileName}/matches",
+    "summary": "Search DAG match snippets",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode",
+      "q",
+      "labels",
+      "workspace",
+      "cursor",
+      "limit"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "search",
+      "wiki"
+    ],
+    "operationId": "SearchWikiPageFeed",
+    "skill": "search",
+    "method": "GET",
+    "path": "/search/wiki",
+    "summary": "Search Wiki pages",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "prefix",
+      "q",
+      "tags",
+      "cursor",
+      "limit"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "search",
+      "wiki",
+      "matches"
+    ],
+    "operationId": "SearchWikiPageMatches",
+    "skill": "search",
+    "method": "GET",
+    "path": "/search/wiki/matches",
+    "summary": "Search Wiki page match snippets",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "path",
+      "q",
+      "cursor",
+      "limit"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "secret",
+      "create"
+    ],
+    "operationId": "CreateSecret",
+    "skill": "secret",
+    "method": "POST",
+    "path": "/secrets",
+    "summary": "Create a secret",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "secret",
+      "delete"
+    ],
+    "operationId": "DeleteSecret",
+    "skill": "secret",
+    "method": "DELETE",
+    "path": "/secrets/{secretId}",
+    "summary": "Delete secret",
+    "pathParams": [
+      "secretId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "secret",
+      "disable"
+    ],
+    "operationId": "DisableSecret",
+    "skill": "secret",
+    "method": "POST",
+    "path": "/secrets/{secretId}/disable",
+    "summary": "Disable secret",
+    "pathParams": [
+      "secretId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "secret",
+      "enable"
+    ],
+    "operationId": "EnableSecret",
+    "skill": "secret",
+    "method": "POST",
+    "path": "/secrets/{secretId}/enable",
+    "summary": "Enable secret",
+    "pathParams": [
+      "secretId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "secret",
+      "get"
+    ],
+    "operationId": "GetSecret",
+    "skill": "secret",
+    "method": "GET",
+    "path": "/secrets/{secretId}",
+    "summary": "Get secret",
+    "pathParams": [
+      "secretId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "secret",
+      "list"
+    ],
+    "operationId": "ListSecrets",
+    "skill": "secret",
+    "method": "GET",
+    "path": "/secrets",
+    "summary": "List secrets",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "limit",
+      "offset"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "secret",
+      "update"
+    ],
+    "operationId": "UpdateSecret",
+    "skill": "secret",
+    "method": "PATCH",
+    "path": "/secrets/{secretId}",
+    "summary": "Update secret metadata",
+    "pathParams": [
+      "secretId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "secret",
+      "version"
+    ],
+    "operationId": "WriteSecretVersion",
+    "skill": "secret",
+    "method": "POST",
+    "path": "/secrets/{secretId}/versions",
+    "summary": "Write a new secret value version",
+    "pathParams": [
+      "secretId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "sync",
+      "cleanup"
+    ],
+    "operationId": "SyncCleanup",
+    "skill": "sync",
+    "method": "POST",
+    "path": "/sync/cleanup",
+    "summary": "Cleanup missing sync items",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "sync",
+      "config",
+      "get"
+    ],
+    "operationId": "GetSyncConfig",
+    "skill": "sync",
+    "method": "GET",
+    "path": "/sync/config",
+    "summary": "Get Git sync configuration",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "sync",
+      "config",
+      "put"
+    ],
+    "operationId": "UpdateSyncConfig",
+    "skill": "sync",
+    "method": "PUT",
+    "path": "/sync/config",
+    "summary": "Update Git sync configuration",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "sync",
+      "delete",
+      "batch"
+    ],
+    "operationId": "SyncDeleteBatch",
+    "skill": "sync",
+    "method": "POST",
+    "path": "/sync/delete-batch",
+    "summary": "Delete selected sync items",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "sync",
+      "delete",
+      "missing"
+    ],
+    "operationId": "SyncDeleteMissing",
+    "skill": "sync",
+    "method": "POST",
+    "path": "/sync/delete-missing",
+    "summary": "Delete all missing sync items",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "sync",
+      "diff"
+    ],
+    "operationId": "GetSyncItemDiff",
+    "skill": "sync",
+    "method": "GET",
+    "path": "/sync/items/{itemId}/diff",
+    "summary": "Get diff for a sync item",
+    "pathParams": [
+      "itemId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "sync",
+      "discard"
+    ],
+    "operationId": "DiscardSyncItemChanges",
+    "skill": "sync",
+    "method": "POST",
+    "path": "/sync/items/{itemId}/discard",
+    "summary": "Discard local changes for a sync item",
+    "pathParams": [
+      "itemId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "sync",
+      "forget"
+    ],
+    "operationId": "ForgetSyncItem",
+    "skill": "sync",
+    "method": "POST",
+    "path": "/sync/items/{itemId}/forget",
+    "summary": "Forget a sync item",
+    "pathParams": [
+      "itemId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "sync",
+      "item",
+      "delete"
+    ],
+    "operationId": "DeleteSyncItem",
+    "skill": "sync",
+    "method": "POST",
+    "path": "/sync/items/{itemId}/delete",
+    "summary": "Delete a sync item",
+    "pathParams": [
+      "itemId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "sync",
+      "move"
+    ],
+    "operationId": "MoveSyncItem",
+    "skill": "sync",
+    "method": "POST",
+    "path": "/sync/items/{itemId}/move",
+    "summary": "Move a sync item",
+    "pathParams": [
+      "itemId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "sync",
+      "publish"
+    ],
+    "operationId": "PublishSyncItem",
+    "skill": "sync",
+    "method": "POST",
+    "path": "/sync/items/{itemId}/publish",
+    "summary": "Publish a single sync item",
+    "pathParams": [
+      "itemId"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "sync",
+      "publish",
+      "all"
+    ],
+    "operationId": "SyncPublishAll",
+    "skill": "sync",
+    "method": "POST",
+    "path": "/sync/publish-all",
+    "summary": "Publish selected sync items",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "sync",
+      "pull"
+    ],
+    "operationId": "SyncPull",
+    "skill": "sync",
+    "method": "POST",
+    "path": "/sync/pull",
+    "summary": "Pull changes from remote repository",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "sync",
+      "status"
+    ],
+    "operationId": "GetSyncStatus",
+    "skill": "sync",
+    "method": "GET",
+    "path": "/sync/status",
+    "summary": "Get Git sync status",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "sync",
+      "test"
+    ],
+    "operationId": "SyncTestConnection",
+    "skill": "sync",
+    "method": "POST",
+    "path": "/sync/test-connection",
+    "summary": "Test connection to remote repository",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "webhook",
+      "create"
+    ],
+    "operationId": "CreateDAGWebhook",
+    "skill": "webhook",
+    "method": "POST",
+    "path": "/dags/{fileName}/webhook",
+    "summary": "Create webhook for DAG",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "webhook",
+      "delete"
+    ],
+    "operationId": "DeleteDAGWebhook",
+    "skill": "webhook",
+    "method": "DELETE",
+    "path": "/dags/{fileName}/webhook",
+    "summary": "Delete webhook for DAG",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "webhook",
+      "get"
+    ],
+    "operationId": "GetDAGWebhook",
+    "skill": "webhook",
+    "method": "GET",
+    "path": "/dags/{fileName}/webhook",
+    "summary": "Get webhook for DAG",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "webhook",
+      "hmac",
+      "configure"
+    ],
+    "operationId": "ConfigureDAGWebhookHMAC",
+    "skill": "webhook",
+    "method": "POST",
+    "path": "/dags/{fileName}/webhook/hmac/configure",
+    "summary": "Configure webhook HMAC",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "webhook",
+      "hmac",
+      "disable"
+    ],
+    "operationId": "DisableDAGWebhookHMAC",
+    "skill": "webhook",
+    "method": "POST",
+    "path": "/dags/{fileName}/webhook/hmac/disable",
+    "summary": "Disable webhook HMAC",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "webhook",
+      "hmac",
+      "enable"
+    ],
+    "operationId": "EnableDAGWebhookHMAC",
+    "skill": "webhook",
+    "method": "POST",
+    "path": "/dags/{fileName}/webhook/hmac/enable",
+    "summary": "Enable webhook HMAC",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "webhook",
+      "hmac",
+      "regenerate"
+    ],
+    "operationId": "RegenerateDAGWebhookHMACSecret",
+    "skill": "webhook",
+    "method": "POST",
+    "path": "/dags/{fileName}/webhook/hmac/regenerate",
+    "summary": "Regenerate webhook HMAC secret",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "webhook",
+      "list"
+    ],
+    "operationId": "ListWebhooks",
+    "skill": "webhook",
+    "method": "GET",
+    "path": "/webhooks",
+    "summary": "List all webhooks",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "webhook",
+      "profile"
+    ],
+    "operationId": "ConfigureDAGWebhookProfileSelection",
+    "skill": "webhook",
+    "method": "PUT",
+    "path": "/dags/{fileName}/webhook/profile-selection",
+    "summary": "Configure webhook profile selection",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "webhook",
+      "regenerate"
+    ],
+    "operationId": "RegenerateDAGWebhookToken",
+    "skill": "webhook",
+    "method": "POST",
+    "path": "/dags/{fileName}/webhook/regenerate",
+    "summary": "Regenerate webhook token",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "webhook",
+      "toggle"
+    ],
+    "operationId": "ToggleDAGWebhook",
+    "skill": "webhook",
+    "method": "POST",
+    "path": "/dags/{fileName}/webhook/toggle",
+    "summary": "Toggle webhook enabled state",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "webhook",
+      "trigger"
+    ],
+    "operationId": "TriggerWebhook",
+    "skill": "webhook",
+    "method": "POST",
+    "path": "/webhooks/{fileName}",
+    "summary": "Trigger DAG execution via webhook",
+    "pathParams": [
+      "fileName"
+    ],
+    "queryParams": [
+      "remoteNode"
+    ],
+    "headerParams": [
+      "Authorization",
+      "X-Dagu-Signature",
+      "X-Dagu-Profile"
+    ],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "wiki",
+      "attachment",
+      "get"
+    ],
+    "operationId": "DownloadWikiPageAttachment",
+    "skill": "wiki",
+    "method": "GET",
+    "path": "/wiki/page/attachment",
+    "summary": "Download Wiki page attachment",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "path",
+      "name"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "wiki",
+      "attachment",
+      "put"
+    ],
+    "operationId": "UploadWikiPageAttachment",
+    "skill": "wiki",
+    "method": "PUT",
+    "path": "/wiki/page/attachment",
+    "summary": "Upload Wiki page attachment",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "path",
+      "name"
+    ],
+    "headerParams": [],
+    "body": "bytes"
+  },
+  {
+    "argv": [
+      "wiki",
+      "backlinks"
+    ],
+    "operationId": "ListWikiPageBacklinks",
+    "skill": "wiki",
+    "method": "GET",
+    "path": "/wiki/backlinks",
+    "summary": "List Wiki page backlinks",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "target"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "wiki",
+      "create"
+    ],
+    "operationId": "CreateWikiPage",
+    "skill": "wiki",
+    "method": "POST",
+    "path": "/wiki",
+    "summary": "Create Wiki page",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "wiki",
+      "delete"
+    ],
+    "operationId": "DeleteWikiPage",
+    "skill": "wiki",
+    "method": "DELETE",
+    "path": "/wiki/page",
+    "summary": "Delete Wiki page",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "path"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "wiki",
+      "delete",
+      "batch"
+    ],
+    "operationId": "DeleteWikiPageBatch",
+    "skill": "wiki",
+    "method": "POST",
+    "path": "/wiki/delete-batch",
+    "summary": "Delete multiple Wiki pages or directories",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "wiki",
+      "get"
+    ],
+    "operationId": "GetWikiPage",
+    "skill": "wiki",
+    "method": "GET",
+    "path": "/wiki/page",
+    "summary": "Get Wiki page",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "path"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "wiki",
+      "list"
+    ],
+    "operationId": "ListWikiPages",
+    "skill": "wiki",
+    "method": "GET",
+    "path": "/wiki",
+    "summary": "List Wiki pages",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "prefix",
+      "page",
+      "perPage",
+      "flat",
+      "tags",
+      "sort",
+      "order"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "wiki",
+      "rename"
+    ],
+    "operationId": "RenameWikiPage",
+    "skill": "wiki",
+    "method": "POST",
+    "path": "/wiki/page/rename",
+    "summary": "Rename Wiki page or directory",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "path"
+    ],
+    "headerParams": [],
+    "body": "json"
+  },
+  {
+    "argv": [
+      "wiki",
+      "revision",
+      "get"
+    ],
+    "operationId": "GetWikiPageRevision",
+    "skill": "wiki",
+    "method": "GET",
+    "path": "/wiki/page/revision",
+    "summary": "Get Wiki page revision",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "path",
+      "rev"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "wiki",
+      "revision",
+      "list"
+    ],
+    "operationId": "ListWikiPageRevisions",
+    "skill": "wiki",
+    "method": "GET",
+    "path": "/wiki/page/revisions",
+    "summary": "List Wiki page revisions",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "path"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "wiki",
+      "search"
+    ],
+    "operationId": "SearchWikiPages",
+    "skill": "wiki",
+    "method": "GET",
+    "path": "/wiki/search",
+    "summary": "Search Wiki pages",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "q"
+    ],
+    "headerParams": [],
+    "body": "none"
+  },
+  {
+    "argv": [
+      "wiki",
+      "update"
+    ],
+    "operationId": "UpdateWikiPage",
+    "skill": "wiki",
+    "method": "PATCH",
+    "path": "/wiki/page",
+    "summary": "Update Wiki page",
+    "pathParams": [],
+    "queryParams": [
+      "remoteNode",
+      "workspace",
+      "path"
+    ],
+    "headerParams": [],
+    "body": "json"
+  }
+]

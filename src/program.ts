@@ -1,9 +1,27 @@
-import { Effect } from "effect";
+import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { Effect } from "effect";
 import { loadConfig } from "./config.ts";
 import { CliError, usage } from "./errors.ts";
 import { callOperation } from "./http.ts";
-import { findOperation, operations, type Operation } from "./openapi.ts";
+import { findOperation } from "./openapi.ts";
+
+const commandPath = join(dirname(fileURLToPath(import.meta.url)), "../spec/commands.json");
+
+export type CommandSpec = {
+  readonly argv: readonly string[];
+  readonly operationId: string;
+  readonly skill: string;
+  readonly method: string;
+  readonly path: string;
+  readonly summary: string;
+  readonly pathParams: readonly string[];
+  readonly queryParams: readonly string[];
+  readonly headerParams: readonly string[];
+  readonly body: "json" | "form" | "bytes" | "none";
+};
 
 export type Envelope = {
   readonly ok: boolean;
@@ -13,18 +31,136 @@ export type Envelope = {
   readonly error?: { readonly code: string; readonly message: string; readonly retryable: boolean };
 };
 
-type Flags = {
-  readonly command: string;
-  readonly operationId?: string;
-  readonly tag?: string;
-  readonly baseUrl?: string;
-  readonly path: Record<string, string>;
+type Invocation = {
+  readonly positionals: readonly string[];
   readonly query: Record<string, unknown>;
-  readonly body?: unknown;
+  readonly bodyText?: string;
+  readonly bodyFile?: string;
+  readonly baseUrl?: string;
   readonly timeoutMs: number;
+  readonly webhookToken?: string;
+  readonly signature?: string;
+  readonly profile?: string;
 };
 
-const parseJsonObject = (value: string, flag: string): Effect.Effect<Record<string, unknown>, CliError> =>
+const commands = JSON.parse(readFileSync(commandPath, "utf8")) as CommandSpec[];
+
+const samePrefix = (command: readonly string[], tokens: readonly string[]): boolean =>
+  command.every((word, index) => tokens[index] === word);
+
+const longestCommand = (tokens: readonly string[]): CommandSpec | undefined =>
+  commands.filter((command) => samePrefix(command.argv, tokens)).sort((left, right) => right.argv.length - left.argv.length)[0];
+
+const usageLine = (command: CommandSpec): string =>
+  ["dagu-cli", ...command.argv, ...command.pathParams.map((name) => `<${name}>`)].join(" ");
+
+const help = (tokens: readonly string[]): Envelope => {
+  const matched = longestCommand(tokens);
+  if (matched && matched.argv.length === tokens.length) {
+    return {
+      ok: true,
+      command: "help",
+      result: {
+        usage: usageLine(matched),
+        summary: matched.summary,
+        method: matched.method,
+        path: matched.path,
+        query: matched.queryParams,
+        body: matched.body,
+        skill: matched.skill,
+      },
+    };
+  }
+  const children = commands.filter((command) => samePrefix(tokens, command.argv));
+  const groups = new Map<string, CommandSpec[]>();
+  for (const command of children) {
+    const next = command.argv[tokens.length];
+    if (!next) continue;
+    const bucket = groups.get(next) ?? [];
+    bucket.push(command);
+    groups.set(next, bucket);
+  }
+  return {
+    ok: true,
+    command: "help",
+    result: {
+      group: tokens.length ? tokens.join(" ") : "dagu-cli",
+      commands: [...groups.entries()].map(([name, bucket]) => {
+        const leaf = bucket.find((command) => command.argv.length === tokens.length + 1);
+        return leaf
+          ? { command: name, usage: usageLine(leaf), summary: leaf.summary }
+          : { command: name, usage: `dagu-cli ${[...tokens, name].join(" ")}`, summary: `${bucket.length} commands` };
+      }),
+    },
+  };
+};
+
+const skillText = (name: string): Envelope => {
+  const names = [...new Set(commands.map((command) => command.skill))].sort();
+  if (name === "list") return { ok: true, command: "skills", result: { skills: names } };
+  const selected = commands.filter((command) => command.skill === name);
+  if (!selected.length) return { ok: false, command: "skills", error: { code: "USAGE", message: `Unknown skill ${name}.`, retryable: false } };
+  return {
+    ok: true,
+    command: "skills",
+    result: {
+      skill: name,
+      commands: selected.map((command) => ({ usage: usageLine(command), summary: command.summary, method: command.method, path: command.path })),
+    },
+  };
+};
+
+const parseInvocation = (argv: readonly string[]): Effect.Effect<Invocation, CliError> => {
+  const positionals: string[] = [];
+  const invocation: {
+    query?: string;
+    body?: string;
+    bodyFile?: string;
+    baseUrl?: string;
+    timeoutMs: number;
+    webhookToken?: string;
+    signature?: string;
+    profile?: string;
+  } = { timeoutMs: 30_000 };
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token) continue;
+    const valued = new Set(["--query", "--body", "--body-file", "--base-url", "--timeout-ms", "--token", "--signature", "--profile"]);
+    if (!valued.has(token)) {
+      if (token.startsWith("--")) return Effect.fail(usage(`Unknown flag ${token}.`));
+      positionals.push(token);
+      continue;
+    }
+    const value = argv[index + 1];
+    if (!value || value.startsWith("--")) return Effect.fail(usage(`${token} needs a value.`));
+    index += 1;
+    if (token === "--query") invocation.query = value;
+    else if (token === "--body") invocation.body = value;
+    else if (token === "--body-file") invocation.bodyFile = value;
+    else if (token === "--base-url") invocation.baseUrl = value;
+    else if (token === "--timeout-ms") invocation.timeoutMs = Number(value);
+    else if (token === "--token") invocation.webhookToken = value;
+    else if (token === "--signature") invocation.signature = value;
+    else invocation.profile = value;
+  }
+  return Effect.gen(function* () {
+    if (!Number.isInteger(invocation.timeoutMs) || invocation.timeoutMs < 1) return yield* Effect.fail(usage("--timeout-ms must be a positive integer."));
+    const query = invocation.query ? yield* jsonObject(invocation.query, "--query") : {};
+    return {
+      positionals,
+      query,
+      bodyText: invocation.body,
+      bodyFile: invocation.bodyFile,
+      baseUrl: invocation.baseUrl,
+      timeoutMs: invocation.timeoutMs,
+      webhookToken: invocation.webhookToken,
+      signature: invocation.signature,
+      profile: invocation.profile,
+    };
+  });
+};
+
+const jsonObject = (value: string, flag: string): Effect.Effect<Record<string, unknown>, CliError> =>
   Effect.try({
     try: () => {
       const parsed = JSON.parse(value) as unknown;
@@ -34,124 +170,81 @@ const parseJsonObject = (value: string, flag: string): Effect.Effect<Record<stri
     catch: () => usage(`${flag} must be a JSON object.`),
   });
 
-const parseArgs = (argv: readonly string[]): Effect.Effect<Flags, CliError> => {
-  const flags: {
-    command: string;
-    operationId?: string;
-    tag?: string;
-    baseUrl?: string;
-    path?: string;
-    query?: string;
-    body?: string;
-    bodyFile?: string;
-    timeoutMs: number;
-  } = { command: argv[0] ?? "help", timeoutMs: 30_000 };
-  const rest = argv.slice(1);
-  const take = (index: number, name: string): string | CliError => {
-    const next = rest[index + 1];
-    if (!next || next.startsWith("--")) return usage(`${name} needs a value.`);
-    return next;
-  };
-  for (let index = 0; index < rest.length; index += 1) {
-    const token = rest[index];
-    if (!token) continue;
-    if (["--tag", "--base-url", "--path", "--query", "--body", "--body-file", "--timeout-ms"].includes(token)) {
-      const value = take(index, token);
-      if (value instanceof CliError) return Effect.fail(value);
-      index += 1;
-      if (token === "--tag") flags.tag = value;
-      else if (token === "--base-url") flags.baseUrl = value;
-      else if (token === "--path") flags.path = value;
-      else if (token === "--query") flags.query = value;
-      else if (token === "--body") flags.body = value;
-      else if (token === "--body-file") flags.bodyFile = value;
-      else flags.timeoutMs = Number(value);
-    } else if (token === "--help" || token === "-h") flags.command = "help";
-    else if (token.startsWith("--")) return Effect.fail(usage(`Unknown flag ${token}.`));
-    else if (!flags.operationId) flags.operationId = token;
-    else return Effect.fail(usage(`Unexpected argument ${token}.`));
+const readBody = (invocation: Invocation, command: CommandSpec): Effect.Effect<unknown, CliError> => {
+  if (command.body === "bytes") {
+    if (!invocation.bodyFile) return Effect.fail(usage(`${usageLine(command)} requires --body-file.`));
+    return Effect.tryPromise({
+      try: async () => new Uint8Array(await readFile(invocation.bodyFile!)),
+      catch: () => usage(`Cannot read ${invocation.bodyFile}.`),
+    });
   }
-  return Effect.gen(function* () {
-    if (!Number.isInteger(flags.timeoutMs) || flags.timeoutMs < 1) return yield* Effect.fail(usage("--timeout-ms must be a positive integer."));
-    const path = flags.path ? yield* parseJsonObject(flags.path, "--path") : {};
-    const query = flags.query ? yield* parseJsonObject(flags.query, "--query") : {};
-    const pathValues: Record<string, string> = {};
-    for (const [key, value] of Object.entries(path)) {
-      if (typeof value !== "string" && typeof value !== "number") return yield* Effect.fail(usage(`Path parameter ${key} must be a string or number.`));
-      pathValues[key] = String(value);
-    }
-    const body = flags.bodyFile
-      ? yield* Effect.tryPromise({
-          try: async () => JSON.parse(await readFile(flags.bodyFile!, "utf8")) as unknown,
-          catch: () => usage(`Cannot read JSON from ${flags.bodyFile}.`),
-        })
-      : flags.body
-        ? yield* Effect.try({
-            try: () => JSON.parse(flags.body!) as unknown,
-            catch: () => usage("--body must be JSON."),
-          })
-        : undefined;
-    return { command: flags.command, operationId: flags.operationId, tag: flags.tag, baseUrl: flags.baseUrl, path: pathValues, query, body, timeoutMs: flags.timeoutMs };
-  });
+  if (invocation.bodyFile) {
+    return Effect.tryPromise({
+      try: async () => JSON.parse(await readFile(invocation.bodyFile!, "utf8")) as unknown,
+      catch: () => usage(`Cannot read JSON from ${invocation.bodyFile}.`),
+    });
+  }
+  if (invocation.bodyText) {
+    return Effect.try({ try: () => JSON.parse(invocation.bodyText!) as unknown, catch: () => usage("--body must be JSON.") });
+  }
+  if (command.body === "json" || command.body === "form") return Effect.succeed(undefined);
+  return Effect.succeed(undefined);
 };
-
-const publicOperation = (operation: Operation) => ({
-  operationId: operation.operationId,
-  method: operation.method,
-  path: operation.path,
-  tag: operation.tag,
-  summary: operation.summary,
-  parameters: operation.parameters.map((parameter) => ({ name: parameter.name, in: parameter.location, required: parameter.required })),
-  bodyProperties: operation.bodyProperties,
-  bodyRequired: operation.bodyRequired,
-});
 
 export const run = (argv: readonly string[]): Effect.Effect<Envelope, CliError> =>
   Effect.gen(function* () {
-    const flags = yield* parseArgs(argv);
-    if (flags.command === "help" || flags.command === undefined) {
-      return { ok: true, command: "help", result: { usage: "dagu-cli operations | describe <operationId> | call <operationId> [--path JSON] [--query JSON] [--body JSON]" } };
+    if (argv.length === 0 || argv.includes("--help") || argv.includes("-h") || argv[0] === "help") {
+      return help(argv.filter((token) => token !== "--help" && token !== "-h" && token !== "help"));
     }
-    if (flags.command === "operations") {
-      const all = yield* operations;
-      const selected = flags.tag ? all.filter((operation) => operation.tag === flags.tag) : all;
-      return { ok: true, command: "operations", result: { count: selected.length, operations: selected.map(publicOperation) } };
+    if (argv[0] === "skills") {
+      const action = argv[1] ?? "list";
+      if (action === "list") return skillText("list");
+      if (action !== "get" || !argv[2]) return yield* Effect.fail(usage("Usage: dagu-cli skills list | dagu-cli skills get <name>"));
+      return skillText(argv[2]);
     }
-    if (!flags.operationId) return yield* Effect.fail(usage(`${flags.command} requires an operationId.`));
-    const operation = yield* findOperation(flags.operationId);
-    if (flags.command === "describe") return { ok: true, command: "describe", result: publicOperation(operation) };
-    if (flags.command !== "call") return yield* Effect.fail(usage(`Unknown command ${flags.command}.`));
-    for (const parameter of operation.parameters) {
-      if (parameter.location === "path" && flags.path[parameter.name] === undefined) {
-        return yield* Effect.fail(usage(`Missing path parameter ${parameter.name}.`));
-      }
+    const invocation = yield* parseInvocation(argv);
+    const command = longestCommand(invocation.positionals);
+    if (!command) {
+      const group = commands.some((item) => item.argv.length > invocation.positionals.length && invocation.positionals.every((token, index) => item.argv[index] === token));
+      if (group) return help(invocation.positionals);
+      return yield* Effect.fail(usage(`Unknown command ${invocation.positionals.join(" ") || "(empty)"}. Run: dagu-cli --help`));
     }
-    if (operation.bodyRequired && flags.body === undefined) return yield* Effect.fail(usage(`${operation.operationId} requires --body.`));
-    const config = yield* loadConfig({ baseUrl: flags.baseUrl });
+    const args = invocation.positionals.slice(command.argv.length);
+    if (args.length === 0 && command.pathParams.length > 0) return help(command.argv);
+    if (args.length !== command.pathParams.length) return yield* Effect.fail(usage(`Usage: ${usageLine(command)}`));
+    const path: Record<string, string> = {};
+    command.pathParams.forEach((name, index) => {
+      const value = args[index];
+      if (value) path[name] = value;
+    });
+    const body = yield* readBody(invocation, command);
+    const headers: Record<string, string> = {};
+    if (command.operationId === "TriggerWebhook") {
+      if (!invocation.webhookToken) return yield* Effect.fail(usage("webhook trigger requires --token."));
+      headers.authorization = `Bearer ${invocation.webhookToken}`;
+      if (invocation.signature) headers["x-dagu-signature"] = invocation.signature;
+      if (invocation.profile) headers["x-dagu-profile"] = invocation.profile;
+    }
+    const config = command.operationId === "TriggerWebhook" && invocation.webhookToken
+      ? { baseUrl: invocation.baseUrl ?? process.env.DAGU_BASE_URL ?? "http://127.0.0.1:8080", apiKey: undefined }
+      : yield* loadConfig({ baseUrl: invocation.baseUrl });
+    const operation = yield* findOperation(command.operationId);
     const response = yield* callOperation({
       baseUrl: config.baseUrl,
       apiKey: config.apiKey,
       operation,
-      path: flags.path,
-      query: flags.query,
-      body: flags.body,
-      timeoutMs: flags.timeoutMs,
+      path,
+      query: invocation.query,
+      body,
+      bodyKind: command.body,
+      headers,
+      timeoutMs: invocation.timeoutMs,
     });
-    const result = { operationId: operation.operationId, method: operation.method, path: operation.path, body: response.body };
+    const result = { command: command.argv.join(" "), operationId: command.operationId, method: command.method, path: command.path, body: response.body };
     if (response.status >= 400) {
-      return {
-        ok: false,
-        command: "call",
-        status: response.status,
-        result,
-        error: {
-          code: `HTTP_${response.status}`,
-          message: `Dagu returned HTTP ${response.status}.`,
-          retryable: response.status === 429 || response.status >= 500,
-        },
-      };
+      return { ok: false, command: command.argv.join(" "), status: response.status, result, error: { code: `HTTP_${response.status}`, message: `Dagu returned HTTP ${response.status}.`, retryable: response.status === 429 || response.status >= 500 } };
     }
-    return { ok: true, command: "call", status: response.status, result };
+    return { ok: true, command: command.argv.join(" "), status: response.status, result };
   });
 
 export const toEnvelope = (error: CliError, command = "dagu-cli"): Envelope => ({

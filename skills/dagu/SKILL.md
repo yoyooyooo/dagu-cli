@@ -1,45 +1,43 @@
 ---
 name: dagu
-description: Operate a Dagu server through the dagu-cli REST command. Use when listing, describing, or calling any Dagu REST operation, including DAGs, runs, sync, webhooks, and admin resources. Do not use for authoring DAG YAML fields; use the official Dagu authoring skill for YAML syntax.
+description: Operate a Dagu server through the dagu-cli command tree. Use when listing or changing DAGs, runs, webhooks, sync, wiki, profiles, queues, secrets, or admin resources. Do not use for authoring DAG YAML fields; use the official Dagu authoring skill for YAML syntax.
 ---
 
 # dagu-cli
 
-Generic REST client for a Dagu server. It does not know which machine is local. Point it with environment variables.
+This file is the entry, not the command reference. The installed CLI is the source of the command tree.
 
 ```text
 DAGU_BASE_URL   default http://127.0.0.1:8080
-DAGU_API_KEY    required bearer token; DAGU_API_TOKEN is accepted
+DAGU_API_KEY    bearer token; DAGU_API_TOKEN is accepted
 ```
 
-The base URL is the server origin. The CLI appends `/api/v1` unless the value already ends with that path. Do not put the key in the URL, flags, or command output.
+The base URL is the server origin. `/api/v1` is appended unless it is already present. Do not put the key in the URL, flags, or command output.
 
-## Commands
-
-JSON is the default stdout. Diagnostics stay on the exit code and the `error` field.
+## Disclosure
 
 ```text
-dagu-cli operations [--tag <tag>]
-dagu-cli describe <operationId>
-dagu-cli call <operationId> [--path JSON] [--query JSON] [--body JSON]
+dagu-cli --help
+dagu-cli <noun> --help
+dagu-cli skills list
+dagu-cli skills get core
+dagu-cli skills get run
+dagu-cli skills get admin
 ```
 
-`--path` and `--query` are JSON objects. Path values fill `{placeholders}`. `--body` is the JSON request body.
+Load `core` before everyday DAG and run work. Load `run` only for steps, sub-runs, human tasks, and artifacts. Load `admin` only for users, API keys, workspaces, settings, and system controls. Other nouns (`webhook`, `sync`, `wiki`, `profile`, `notify`, `incident`, `queue`, `secret`, `search`) disclose themselves through `dagu-cli <noun> --help` or `dagu-cli skills get <noun>`.
 
-A successful call:
+## Calling
 
-```json
-{"ok":true,"command":"call","status":200,"result":{"operationId":"ListDAGs","method":"GET","path":"/dags","body":{}}}
+A leaf command takes path parameters as positionals, in the order shown by `--help`.
+
+```text
+dagu-cli dag list
+dagu-cli dag get <fileName>
+dagu-cli dag start <fileName> --body '<json>'
+dagu-cli run log <name> <dagRunId>
 ```
 
-A failed call still returns JSON and a non-zero exit. HTTP error bodies are in `result.body`.
+Optional query parameters go in `--query '<json object>'`. JSON and form bodies go in `--body` or `--body-file`. `wiki attachment put` requires `--body-file` and sends raw bytes. `webhook trigger <fileName> --token <webhook-token>` uses the webhook token, not `DAGU_API_KEY`. Add `--signature` and `--profile` only when that webhook requires them.
 
-## Agent loop
-
-1. `operations` to find the `operationId`. Filter with `--tag` when the area is known (`dags`, `dag-runs`, `sync`, `webhooks`).
-2. `describe` before the first call. Read required path parameters and body properties.
-3. `call` only the operation the user asked for.
-
-`GET` is safe to run when the user asked to inspect. `POST`, `PUT`, `PATCH`, and `DELETE` change server state. Run those only when the user named that effect. Do not delete DAGs, API keys, secrets, or users as exploration.
-
-The vendored spec is Dagu's OpenAPI document. It is not a promise that every server enables every route. Trust the HTTP status from `call`.
+Stdout is JSON. Exit `0` on success, `2` on usage or config errors, and `1` on HTTP or transport failures. `GET` is safe when the user asked to inspect. Run `POST`, `PUT`, `PATCH`, and `DELETE` only when the user named that effect.

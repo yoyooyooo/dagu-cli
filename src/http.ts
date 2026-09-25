@@ -5,17 +5,38 @@ import type { Operation } from "./openapi.ts";
 
 export type CallInput = {
   readonly baseUrl: string;
-  readonly apiKey: string;
+  readonly apiKey?: string;
   readonly operation: Operation;
   readonly path: Readonly<Record<string, string>>;
   readonly query: Readonly<Record<string, unknown>>;
   readonly body: unknown;
+  readonly bodyKind: "json" | "form" | "bytes" | "none";
+  readonly headers: Readonly<Record<string, string>>;
   readonly timeoutMs: number;
 };
 
 const encode = (value: unknown): string => {
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
   return JSON.stringify(value);
+};
+
+const encodeBody = (input: Pick<CallInput, "body" | "bodyKind" | "operation">): { readonly contentType: string; readonly body: BodyInit } | undefined => {
+  if (input.body === undefined || input.operation.method === "GET" || input.bodyKind === "none") return undefined;
+  if (input.bodyKind === "bytes") {
+    if (!(input.body instanceof Uint8Array)) throw new CliError({ code: "USAGE", message: "This command requires --body-file.", retryable: false });
+    const copy = new ArrayBuffer(input.body.byteLength);
+    new Uint8Array(copy).set(input.body);
+    return { contentType: "application/octet-stream", body: new Blob([copy]) };
+  }
+  if (input.bodyKind === "form") {
+    if (input.body === null || typeof input.body !== "object" || Array.isArray(input.body)) {
+      throw new CliError({ code: "USAGE", message: "Form commands require --body as a JSON object.", retryable: false });
+    }
+    const form = new URLSearchParams();
+    for (const [key, value] of Object.entries(input.body)) form.set(key, encode(value));
+    return { contentType: "application/x-www-form-urlencoded", body: form };
+  }
+  return { contentType: "application/json", body: JSON.stringify(input.body) };
 };
 
 export const buildUrl = (input: Pick<CallInput, "baseUrl" | "operation" | "path" | "query">): string => {
@@ -43,15 +64,14 @@ export const callOperation = (input: CallInput): Effect.Effect<{ readonly status
   Effect.tryPromise({
     try: async () => {
       const url = buildUrl(input);
-      const hasBody = input.body !== undefined && input.operation.method !== "GET";
+      const encoded = encodeBody(input);
+      const headers: Record<string, string> = { accept: "application/json", ...input.headers };
+      if (input.apiKey && !headers.authorization && !headers.Authorization) headers.authorization = `Bearer ${input.apiKey}`;
+      if (encoded) headers["content-type"] = encoded.contentType;
       const response = await fetch(url, {
         method: input.operation.method,
-        headers: {
-          accept: "application/json",
-          authorization: `Bearer ${input.apiKey}`,
-          ...(hasBody ? { "content-type": "application/json" } : {}),
-        },
-        body: hasBody ? JSON.stringify(input.body) : undefined,
+        headers,
+        body: encoded?.body,
         signal: AbortSignal.timeout(input.timeoutMs),
       });
       const text = await response.text();
@@ -70,7 +90,7 @@ export const callOperation = (input: CallInput): Effect.Effect<{ readonly status
     catch: (cause) =>
       new CliError({
         code: cause instanceof CliError ? cause.code : "TRANSPORT",
-        message: cause instanceof Error ? cause.message.replace(input.apiKey, "[redacted]") : "Request failed.",
+        message: cause instanceof Error ? cause.message.replaceAll(input.apiKey ?? "\0", "[redacted]") : "Request failed.",
         retryable: !(cause instanceof CliError),
       }),
   });
