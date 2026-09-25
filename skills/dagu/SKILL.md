@@ -38,6 +38,6 @@ dagu-cli dag start <fileName> --body '<json>'
 dagu-cli run log <name> <dagRunId>
 ```
 
-Optional query parameters go in `--query '<json object>'`. JSON and form bodies go in `--body` or `--body-file`. `wiki attachment put` requires `--body-file` and sends raw bytes. `webhook trigger <fileName> --token <webhook-token>` uses the webhook token, not `DAGU_API_KEY`. Add `--signature` and `--profile` only when that webhook requires them.
+Filters are `--query '<json object>'` or a named flag `--<name> <value>` for a query parameter shown by `--help`. `--limit 5` and `--q <text>` work. `-q` does not. `run step log` and its download commands send `stream=false` unless you pass `--stream`. JSON and form bodies go in `--body` or `--body-file`. `wiki attachment put` requires `--body-file` and sends raw bytes. `webhook trigger <fileName> --token <webhook-token>` uses the webhook token, not `DAGU_API_KEY`. Add `--signature` and `--profile` only when that webhook requires them.
 
 Stdout is JSON. Exit `0` on success, `2` on usage or config errors, and `1` on HTTP or transport failures. `GET` is safe when the user asked to inspect. Run `POST`, `PUT`, `PATCH`, and `DELETE` only when the user named that effect.

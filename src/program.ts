@@ -34,6 +34,7 @@ export type Envelope = {
 type Invocation = {
   readonly positionals: readonly string[];
   readonly query: Record<string, unknown>;
+  readonly flags: Readonly<Record<string, string>>;
   readonly bodyText?: string;
   readonly bodyFile?: string;
   readonly baseUrl?: string;
@@ -42,6 +43,16 @@ type Invocation = {
   readonly signature?: string;
   readonly profile?: string;
 };
+
+const STREAM_DEFAULT = new Set([
+  "GetDAGRunStepLog",
+  "DownloadDAGRunStepLog",
+  "GetSubDAGRunStepLog",
+  "DownloadSubDAGRunStepLog",
+]);
+
+const callHint = "Path parameters are positional. Filters are --query '<json>' or --<name> <value>. Do not invent short flags such as -q.";
+const shortCall = "filters: --query JSON or --<name>";
 
 const commands = JSON.parse(readFileSync(commandPath, "utf8")) as CommandSpec[];
 
@@ -66,8 +77,10 @@ const help = (tokens: readonly string[]): Envelope => {
         method: matched.method,
         path: matched.path,
         query: matched.queryParams,
-        body: matched.body,
         skill: matched.skill,
+        call: shortCall,
+        ...(matched.body === "none" ? {} : { body: matched.body }),
+        ...(STREAM_DEFAULT.has(matched.operationId) ? { defaults: { stream: false } } : {}),
       },
     };
   }
@@ -87,7 +100,11 @@ const help = (tokens: readonly string[]): Envelope => {
       : { command: name, usage: `dagu-cli ${[...tokens, name].join(" ")}`, summary: `${bucket.length} commands` };
   });
   if (tokens.length === 0) entries.push({ command: "skills", usage: "dagu-cli skills list", summary: "List or load one layer of the command tree" });
-  return { ok: true, command: "help", result: { group: tokens.length ? tokens.join(" ") : "dagu-cli", commands: entries } };
+  return {
+    ok: true,
+    command: "help",
+    result: { group: tokens.length ? tokens.join(" ") : "dagu-cli", ...(tokens.length === 0 ? { call: callHint } : { call: shortCall }), commands: entries },
+  };
 };
 
 const skillText = (name: string): Envelope => {
@@ -100,7 +117,7 @@ const skillText = (name: string): Envelope => {
     command: "skills",
     result: {
       skill: name,
-      commands: selected.map((command) => ({ usage: usageLine(command), summary: command.summary, method: command.method, path: command.path })),
+      commands: selected.map((command) => ({ usage: usageLine(command), summary: command.summary })),
     },
   };
 };
@@ -109,6 +126,7 @@ const parseInvocation = (argv: readonly string[]): Effect.Effect<Invocation, Cli
   const positionals: string[] = [];
   const invocation: {
     query?: string;
+    flags: Record<string, string>;
     body?: string;
     bodyFile?: string;
     baseUrl?: string;
@@ -116,13 +134,20 @@ const parseInvocation = (argv: readonly string[]): Effect.Effect<Invocation, Cli
     webhookToken?: string;
     signature?: string;
     profile?: string;
-  } = { timeoutMs: 30_000 };
+  } = { timeoutMs: 30_000, flags: {} };
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (!token) continue;
     const valued = new Set(["--query", "--body", "--body-file", "--base-url", "--timeout-ms", "--token", "--signature", "--profile"]);
+    if (token.startsWith("-") && !token.startsWith("--")) return Effect.fail(usage(`Unknown flag ${token}. ${callHint}`));
     if (!valued.has(token)) {
-      if (token.startsWith("--")) return Effect.fail(usage(`Unknown flag ${token}.`));
+      if (token.startsWith("--")) {
+        const flagValue = argv[index + 1];
+        if (!flagValue || flagValue.startsWith("--")) return Effect.fail(usage(`${token} needs a value. ${callHint}`));
+        invocation.flags[token.slice(2)] = flagValue;
+        index += 1;
+        continue;
+      }
       positionals.push(token);
       continue;
     }
@@ -144,6 +169,7 @@ const parseInvocation = (argv: readonly string[]): Effect.Effect<Invocation, Cli
     return {
       positionals,
       query,
+      flags: invocation.flags,
       bodyText: invocation.body,
       bodyFile: invocation.bodyFile,
       baseUrl: invocation.baseUrl,
@@ -153,6 +179,13 @@ const parseInvocation = (argv: readonly string[]): Effect.Effect<Invocation, Cli
       profile: invocation.profile,
     };
   });
+};
+
+const coerceFlag = (value: string): unknown => {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  if (/^-?\d+$/.test(value)) return Number(value);
+  return value;
 };
 
 const jsonObject = (value: string, flag: string): Effect.Effect<Record<string, unknown>, CliError> =>
@@ -212,6 +245,15 @@ export const run = (argv: readonly string[]): Effect.Effect<Envelope, CliError> 
       const value = args[index];
       if (value) path[name] = value;
     });
+    const query: Record<string, unknown> = { ...invocation.query };
+    for (const [name, value] of Object.entries(invocation.flags)) {
+      if (!command.queryParams.includes(name)) {
+        const names = command.queryParams.map((item) => `--${item}`).join(", ");
+        return yield* Effect.fail(usage(`Unknown flag --${name}. ${callHint} Accepted filters: ${names || "none"}.`));
+      }
+      query[name] = coerceFlag(value);
+    }
+    if (STREAM_DEFAULT.has(command.operationId) && query.stream === undefined) query.stream = false;
     const body = yield* readBody(invocation, command);
     const headers: Record<string, string> = {};
     if (command.operationId === "TriggerWebhook") {
@@ -229,7 +271,7 @@ export const run = (argv: readonly string[]): Effect.Effect<Envelope, CliError> 
       apiKey: config.apiKey,
       operation,
       path,
-      query: invocation.query,
+      query,
       body,
       bodyKind: command.body,
       headers,

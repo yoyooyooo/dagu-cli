@@ -88,7 +88,7 @@ bun run dagu-cli -- dag start --help
 
 ## 接下来会用到的命令
 
-路径参数是位置参数。可选 query 放在 `--query '<json object>'`。JSON body 放在 `--body` 或 `--body-file`。
+路径参数是位置参数。过滤用 `--query '<json object>'` 或 `--<name> <value>`，例如 `--limit 5`、`--q <text>`。不接受 `-q`。`run step log` 默认发送 `stream=false`，除非另外传 `--stream`。JSON body 放在 `--body` 或 `--body-file`。
 
 ```text
 dagu-cli dag get <fileName>

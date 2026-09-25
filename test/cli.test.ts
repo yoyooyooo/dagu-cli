@@ -4,10 +4,12 @@ import { Effect } from "effect";
 import { apiRoot } from "../src/config.ts";
 import { buildUrl } from "../src/http.ts";
 import { operations } from "../src/openapi.ts";
-import { run, type CommandSpec } from "../src/program.ts";
+import { CliError } from "../src/errors.ts";
+import { run, toEnvelope, type CommandSpec } from "../src/program.ts";
 
 const commands = JSON.parse(readFileSync(new URL("../spec/commands.json", import.meta.url), "utf8")) as CommandSpec[];
-const execute = (argv: readonly string[]) => Effect.runPromise(run(argv));
+const execute = (argv: readonly string[]) =>
+  Effect.runPromise(run(argv).pipe(Effect.catch((error) => Effect.succeed(toEnvelope(error instanceof CliError ? error : new CliError({ code: "INTERNAL", message: "Internal error.", retryable: false }))))));
 
 describe("command tree", () => {
   test("covers every OpenAPI operation exactly once", async () => {
@@ -37,6 +39,43 @@ describe("command tree", () => {
     expect(coreText).toContain("dagu-cli run get <name> <dagRunId>");
     expect(coreText).not.toContain("api-key create");
     expect(adminText).toContain("dagu-cli admin api-key create");
+  });
+
+  test("named query flags and the step-log stream default are sent", async () => {
+    const seen: string[] = [];
+    const original = globalThis.fetch;
+    const previousKey = process.env.DAGU_API_KEY;
+    const previousUrl = process.env.DAGU_BASE_URL;
+    process.env.DAGU_API_KEY = "test-key";
+    process.env.DAGU_BASE_URL = "http://127.0.0.1:8080";
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      seen.push(String(input));
+      return new Response("{}", { status: 200 });
+    }) as typeof fetch;
+    try {
+      const listed = await execute(["run", "list", "--limit", "5"]);
+      const logged = await execute(["run", "step", "log", "demo", "run-1", "build"]);
+      const streamed = await execute(["run", "step", "log", "demo", "run-1", "build", "--stream", "true"]);
+      expect(listed.ok).toBe(true);
+      expect(logged.ok).toBe(true);
+      expect(streamed.ok).toBe(true);
+      expect(seen[0]).toContain("limit=5");
+      expect(seen[1]).toContain("stream=false");
+      expect(seen[2]).toContain("stream=true");
+    } finally {
+      globalThis.fetch = original;
+      if (previousKey === undefined) delete process.env.DAGU_API_KEY;
+      else process.env.DAGU_API_KEY = previousKey;
+      if (previousUrl === undefined) delete process.env.DAGU_BASE_URL;
+      else process.env.DAGU_BASE_URL = previousUrl;
+    }
+  });
+
+  test("an unknown filter names the accepted flags", async () => {
+    const envelope = await execute(["dag", "search", "--limit", "1"]);
+    expect(envelope.ok).toBe(false);
+    expect(envelope.error?.message).toContain("--query");
+    expect(envelope.error?.message).toContain("--q");
   });
 
   test("dag start sends the file name on the path", async () => {

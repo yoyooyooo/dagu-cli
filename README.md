@@ -88,7 +88,7 @@ bun run dagu-cli -- dag start --help
 
 ## Commands you will hit next
 
-Path parameters are positional. Optional query parameters go in `--query '<json object>'`. JSON bodies go in `--body` or `--body-file`.
+Path parameters are positional. Filters go in `--query '<json object>'` or `--<name> <value>`, for example `--limit 5` or `--q <text>`. `-q` is not accepted. `run step log` sends `stream=false` unless `--stream` is set. JSON bodies go in `--body` or `--body-file`.
 
 ```text
 dagu-cli dag get <fileName>
