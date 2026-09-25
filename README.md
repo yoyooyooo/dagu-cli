@@ -10,7 +10,7 @@ export DAGU_API_KEY=<api-key>
 dagu-cli dag list
 ```
 
-Bun 1.3.14 or newer is required. Node cannot run the TypeScript bin. Version 0.1.0 is the first source release. It is not published to npm. Before 1.0.0, command names may change.
+Bun 1.3.14 or newer is required. Node cannot run the TypeScript bin. The current version is 0.1.1. Before 1.0.0, command names may change.
 
 ## The problem
 
@@ -40,9 +40,14 @@ bun install --frozen-lockfile
 bun run dagu-cli -- --help
 ```
 
-There is no registry package yet. Do not run `bun install -g dagu-cli` or `npm install -g dagu-cli`; the name is not published. `npm view dagu-cli` currently returns 404.
+The package is on the official npm registry. Bun still has to run the TypeScript bin:
 
-A packed tarball can be installed with `bun install <path-to-tarball>` from an empty directory. The bin is `src/cli.ts`, so the installed package still runs under Bun.
+```bash
+bun install -g dagu-cli
+dagu-cli --help
+```
+
+Source is at <https://github.com/yoyooyooo/dagu-cli>. `0.1.0` was published from a maintainer session and has no provenance. Later versions are published by the `v*` tag workflow.
 
 ## Quick start
 
@@ -114,7 +119,7 @@ See [SECURITY.md](./SECURITY.md). A private vulnerability contact is not publish
 - The command tree matches the vendored `spec/openapi.json` (`info.version` 1.0.0). A newer or older Dagu server can reject commands or add operations this release does not name.
 - Node, Deno, and browsers are not supported hosts.
 - Windows was not part of the local check. The verified host is Bun 1.3.14.
-- This repository has no public remote yet. Links to a homepage, issue tracker, or registry version would be invented, so they are omitted.
+- `0.1.0` has no npm provenance. Provenance starts with the tag workflow.
 - The OpenAPI document and the derived command map are GPL-3.0-or-later works from Dagu. See [NOTICE](./NOTICE).
 
 ## Development

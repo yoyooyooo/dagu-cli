@@ -1,9 +1,15 @@
 {
   "name": "dagu-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Named-command client for a Dagu server's REST API. One command per OpenAPI operation.",
   "keywords": ["dagu", "workflow", "cli", "rest", "agent"],
   "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yoyooyooo/dagu-cli.git"
+  },
+  "bugs": "https://github.com/yoyooyooo/dagu-cli/issues",
+  "homepage": "https://github.com/yoyooyooo/dagu-cli#readme",
   "type": "module",
   "bin": {
     "dagu-cli": "src/cli.ts"

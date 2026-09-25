@@ -1,0 +1,89 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: bun install --frozen-lockfile
+      - name: Validate tag
+        run: |
+          node <<'NODE'
+          const { name, version } = require("./package.json");
+          const tag = process.env.GITHUB_REF_NAME;
+          if (name !== "dagu-cli") {
+            console.error(`unexpected package name ${name}`);
+            process.exit(1);
+          }
+          if (tag !== `v${version}`) {
+            console.error(`tag ${tag} does not match v${version}`);
+            process.exit(1);
+          }
+          const file = process.env.GITHUB_ENV;
+          require("node:fs").appendFileSync(file, `PACKAGE_VERSION=${version}\nRELEASE_TAG=${tag}\n`);
+          NODE
+      - run: bun run check
+      - name: Pack
+        run: |
+          mkdir -p "$RUNNER_TEMP/pack"
+          bun pm pack --destination "$RUNNER_TEMP/pack"
+          tarball="$RUNNER_TEMP/pack/dagu-cli-${PACKAGE_VERSION}.tgz"
+          tar -xOf "$tarball" package/package.json | node -e '
+            let text = "";
+            process.stdin.on("data", (chunk) => { text += chunk; });
+            process.stdin.on("end", () => {
+              const manifest = JSON.parse(text);
+              if (JSON.stringify(manifest).includes("catalog:")) process.exit(1);
+              if (manifest.name !== "dagu-cli" || manifest.version !== process.env.PACKAGE_VERSION) process.exit(1);
+            });
+          '
+          echo "TARBALL=$tarball" >> "$GITHUB_ENV"
+      - name: Publish
+        run: |
+          unset NODE_AUTH_TOKEN
+          if npm view "dagu-cli@${PACKAGE_VERSION}" version --registry https://registry.npmjs.org/ >/dev/null 2>&1; then
+            echo "dagu-cli@${PACKAGE_VERSION} is already on npm; skipping publish."
+            exit 0
+          fi
+          npm publish "$TARBALL" --access public --provenance --registry https://registry.npmjs.org/
+      - name: Verify npm package
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            published="$(npm view "dagu-cli@${PACKAGE_VERSION}" version --registry https://registry.npmjs.org/ 2>/tmp/npm-view.err || true)"
+            if [ "$published" = "$PACKAGE_VERSION" ]; then
+              exit 0
+            fi
+            if [ "$attempt" = "6" ]; then
+              cat /tmp/npm-view.err >&2
+              exit 1
+            fi
+            sleep $((attempt * 5))
+          done
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --title "$RELEASE_TAG" --notes "dagu-cli ${PACKAGE_VERSION}"
+          else
+            gh release create "$RELEASE_TAG" --title "$RELEASE_TAG" --notes "dagu-cli ${PACKAGE_VERSION}" --verify-tag
+          fi

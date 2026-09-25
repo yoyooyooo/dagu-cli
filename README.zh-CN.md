@@ -10,7 +10,7 @@ export DAGU_API_KEY=<api-key>
 dagu-cli dag list
 ```
 
-需要 Bun 1.3.14 或更新版本。Node 不能运行这个 TypeScript bin。0.1.0 是第一版可公开的源码，还没有发布到 npm。1.0.0 之前，命令名可能变化。
+需要 Bun 1.3.14 或更新版本。Node 不能运行这个 TypeScript bin。当前版本是 0.1.1。1.0.0 之前，命令名可能变化。
 
 ## 解决的问题
 
@@ -40,9 +40,14 @@ bun install --frozen-lockfile
 bun run dagu-cli -- --help
 ```
 
-目前没有 registry 包。不要运行 `bun install -g dagu-cli` 或 `npm install -g dagu-cli`，这个名字还没有发布。`npm view dagu-cli` 当前返回 404。
+包在官方 npm registry 上。TypeScript bin 仍然要用 Bun 运行：
 
-打包后的 tarball 可以在空目录里用 `bun install <tarball 路径>` 安装。bin 是 `src/cli.ts`，装好之后仍然要用 Bun 运行。
+```bash
+bun install -g dagu-cli
+dagu-cli --help
+```
+
+源码在 <https://github.com/yoyooyooo/dagu-cli>。`0.1.0` 由维护者本机发布，没有 provenance。之后的版本由 `v*` tag workflow 发布。
 
 ## 快速开始
 
@@ -114,7 +119,7 @@ CLI 只把 API key 发给你设置的基址。`--body-file` 只读取你传入�
 - 命令树对齐的是随仓库提供的 `spec/openapi.json`（`info.version` 为 1.0.0）。更新或更旧的 Dagu 服务器可能拒绝这些命令，也可能增加本版本没有命名的 operation。
 - Node、Deno 和浏览器都不是支持的宿主。
 - 本地检查没有覆盖 Windows。已核对的宿主是 Bun 1.3.14。
-- 这个仓库还没有公开远端。homepage、issue tracker 和 registry 版本如果写出来就是编造的，所以这里不写。
+- `0.1.0` 没有 npm provenance。provenance 从 tag workflow 开始。
 - OpenAPI 文档和由此生成的命令映射是 Dagu 的 GPL-3.0-or-later 材料。见 [NOTICE](./NOTICE)。
 
 ## 开发
