@@ -10,9 +10,12 @@ This file is the entry, not the command reference. The installed CLI is the sour
 ```text
 DAGU_BASE_URL   default http://127.0.0.1:8080
 DAGU_API_KEY    bearer token; DAGU_API_TOKEN is accepted
+config file     ~/.config/dagu/automation.json (DAGU_CONFIG_FILE overrides the path)
 ```
 
-The base URL is the server origin. `/api/v1` is appended unless it is already present. Do not put the key in the URL, flags, or command output.
+The base URL is the server origin. `/api/v1` is appended unless it is already present. Do not append `/mcp`. Do not put the key in the URL, flags, or command output.
+
+The config file is optional and is the same owner-private mode 600 file the automation catalog client uses (`key`, optional `baseUrl`). It is not a second secret channel. Priority is `--base-url`, then the file, then the environment, then the built-in default. A missing file is ignored. A symlink or a file readable by group/other is an error. The CLI does not write the file.
 
 ## Disclosure
 

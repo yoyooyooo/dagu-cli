@@ -2,6 +2,10 @@
 
 This project uses semantic versioning. Before 1.0.0, minor versions may change command names or JSON fields.
 
+## Unreleased
+
+- Read optional `~/.config/dagu/automation.json` (`key`, optional `baseUrl`) before `DAGU_API_KEY` / `DAGU_BASE_URL`. This is the automation catalog credential file, not a second secret store. The CLI still does not write it.
+
 ## 0.1.1
 
 - Publish from the `v*` tag workflow in `.github/workflows/publish.yml`.

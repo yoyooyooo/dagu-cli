@@ -1,11 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { chmod, mkdtemp, symlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { Effect } from "effect";
-import { apiRoot } from "../src/config.ts";
+import { apiRoot, loadConfig } from "../src/config.ts";
 import { buildUrl } from "../src/http.ts";
 import { operations } from "../src/openapi.ts";
 import { CliError } from "../src/errors.ts";
 import { run, toEnvelope, type CommandSpec } from "../src/program.ts";
+
+// Keep this file off the operator credential file. Config cases set their own path.
+const missingConfigFile = join(tmpdir(), `dagu-cli-no-such-config-${process.pid}.json`);
+process.env.DAGU_CONFIG_FILE = missingConfigFile;
 
 const commands = JSON.parse(readFileSync(new URL("../spec/commands.json", import.meta.url), "utf8")) as CommandSpec[];
 const execute = (argv: readonly string[]) =>
@@ -120,6 +127,92 @@ describe("command tree", () => {
     } finally {
       globalThis.fetch = original;
       if (previous) process.env.DAGU_API_KEY = previous;
+    }
+  });
+});
+
+describe("config", () => {
+  const previous = {
+    key: process.env.DAGU_API_KEY,
+    token: process.env.DAGU_API_TOKEN,
+    url: process.env.DAGU_BASE_URL,
+  };
+  const restore = () => {
+    const assign = (name: string, value: string | undefined) => {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    };
+    assign("DAGU_API_KEY", previous.key);
+    assign("DAGU_API_TOKEN", previous.token);
+    assign("DAGU_BASE_URL", previous.url);
+    process.env.DAGU_CONFIG_FILE = missingConfigFile;
+  };
+
+  test("private automation.json beats env, and --base-url beats the file", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "dagu-cli-config-"));
+    const file = join(dir, "automation.json");
+    await writeFile(file, JSON.stringify({ key: "file-key", baseUrl: "https://file.example" }));
+    await chmod(file, 0o600);
+    process.env.DAGU_CONFIG_FILE = file;
+    process.env.DAGU_API_KEY = "env-key";
+    process.env.DAGU_BASE_URL = "https://env.example";
+    delete process.env.DAGU_API_TOKEN;
+    try {
+      const fromFile = await Effect.runPromise(loadConfig({}));
+      expect(fromFile).toEqual({ baseUrl: "https://file.example/api/v1", apiKey: "file-key" });
+      const fromFlag = await Effect.runPromise(loadConfig({ baseUrl: "https://flag.example" }));
+      expect(fromFlag.baseUrl).toBe("https://flag.example/api/v1");
+      expect(fromFlag.apiKey).toBe("file-key");
+    } finally {
+      restore();
+    }
+  });
+
+  test("a missing file uses DAGU_API_TOKEN and the loopback default", async () => {
+    process.env.DAGU_CONFIG_FILE = join(tmpdir(), `dagu-cli-absent-${process.pid}.json`);
+    delete process.env.DAGU_API_KEY;
+    delete process.env.DAGU_BASE_URL;
+    process.env.DAGU_API_TOKEN = "token-alias";
+    try {
+      const config = await Effect.runPromise(loadConfig({}));
+      expect(config).toEqual({ baseUrl: "http://127.0.0.1:8080/api/v1", apiKey: "token-alias" });
+    } finally {
+      restore();
+    }
+  });
+
+  test("an unprivate or linked config file fails without echoing the key", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "dagu-cli-open-"));
+    const file = join(dir, "automation.json");
+    await writeFile(file, JSON.stringify({ key: "file-key" }));
+    await chmod(file, 0o644);
+    const link = join(dir, "link.json");
+    await symlink(file, link);
+    delete process.env.DAGU_API_KEY;
+    delete process.env.DAGU_API_TOKEN;
+    try {
+      for (const path of [file, link]) {
+        process.env.DAGU_CONFIG_FILE = path;
+        const result = await Effect.runPromise(loadConfig({}).pipe(Effect.catch((cause) => Effect.succeed(cause))));
+        expect(result).toBeInstanceOf(CliError);
+        expect(JSON.stringify(result)).not.toContain("file-key");
+      }
+    } finally {
+      restore();
+    }
+  });
+
+  test("credentials and /mcp are rejected without copying them into the error", async () => {
+    process.env.DAGU_CONFIG_FILE = missingConfigFile;
+    process.env.DAGU_API_KEY = "env-key";
+    try {
+      for (const baseUrl of ["https://user:url-secret@dagu.example", "https://dagu.example/mcp"]) {
+        const result = await Effect.runPromise(loadConfig({ baseUrl }).pipe(Effect.catch((cause) => Effect.succeed(cause))));
+        expect(result).toBeInstanceOf(CliError);
+        expect(JSON.stringify(result)).not.toContain("url-secret");
+      }
+    } finally {
+      restore();
     }
   });
 });

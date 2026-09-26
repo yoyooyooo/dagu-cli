@@ -75,7 +75,11 @@ export DAGU_API_KEY=<api-key>
 bun run dagu-cli -- dag list
 ```
 
-`DAGU_API_TOKEN` 是 `DAGU_API_KEY` 的别名。基址如果已经以 `/api/v1` 结尾，不会再追加一次。成功时响应包含 `"ok": true` 和 `status` 200。DAG 数组在 `result.body`。具体字段取决于你的 Dagu 版本。
+`DAGU_API_TOKEN` 是 `DAGU_API_KEY` 的别名。基址如果已经以 `/api/v1` 结尾，不会再追加一次。不要在基址上加 `/mcp`，也不要把 key 放进 URL。
+
+可选配置文件是 `~/.config/dagu/automation.json`（用 `DAGU_CONFIG_FILE` 改路径）。这和 automation catalog 客户端用的是同一个属主私有、mode 600 的文件，不是另一套凭据。`key` 是 bearer（没有 `key` 时才接受 `apiKey`）。可选 `baseUrl` 是 REST origin。优先级是 `--base-url`，然后文件，然后 `DAGU_BASE_URL` / `DAGU_API_KEY`，最后才是 `http://127.0.0.1:8080`。文件不存在时行为不变。CLI 不写这个文件。
+
+成功时响应包含 `"ok": true` 和 `status` 200。DAG 数组在 `result.body`。具体字段取决于你的 Dagu 版本。
 
 改任何东西之前先看下一层：
 
@@ -108,7 +112,7 @@ dagu-cli wiki attachment put --body-file <path> --query '<json>'
 
 ## 安全与隐私
 
-CLI 只把 API key 发给你设置的基址。`--body-file` 只读取你传入的本地路径。它不写配置文件，也不把数据发到其他地方。错误文本会把 API key 替换成 `[redacted]`。
+CLI 只把 API key 发给你设置的基址。`--body-file` 只读取你传入的本地路径。当 `~/.config/dagu/automation.json` 是属主私有的普通文件时，CLI 会读取它；CLI 不写配置文件，也不把数据发到其他地方。错误文本会把 API key 替换成 `[redacted]`，并且不会打印文件内容。
 
 没有二次确认。HTTP 方法是 POST、PUT、PATCH 或 DELETE 的命令会修改服务器。只在确实需要这个效果时运行。
 

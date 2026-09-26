@@ -262,13 +262,12 @@ export const run = (argv: readonly string[]): Effect.Effect<Envelope, CliError> 
       if (invocation.signature) headers["x-dagu-signature"] = invocation.signature;
       if (invocation.profile) headers["x-dagu-profile"] = invocation.profile;
     }
-    const config = command.operationId === "TriggerWebhook" && invocation.webhookToken
-      ? { baseUrl: invocation.baseUrl ?? process.env.DAGU_BASE_URL ?? "http://127.0.0.1:8080", apiKey: undefined }
-      : yield* loadConfig({ baseUrl: invocation.baseUrl });
+    const webhook = command.operationId === "TriggerWebhook";
+    const config = yield* loadConfig({ baseUrl: invocation.baseUrl, requireApiKey: !webhook });
     const operation = yield* findOperation(command.operationId);
     const response = yield* callOperation({
       baseUrl: config.baseUrl,
-      apiKey: config.apiKey,
+      apiKey: webhook ? undefined : config.apiKey,
       operation,
       path,
       query,
