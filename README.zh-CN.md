@@ -104,7 +104,7 @@ dagu-cli wiki attachment put --body-file <path> --query '<json>'
 
 `wiki attachment put` 是唯一发送原始字节的命令。`run step logs form` 和 `run sub step logs form` 把 `--body` 发成 `application/x-www-form-urlencoded`。
 
-完整命令树以 CLI 帮助为准，不在这一页展开。Agent 从 `skills/dagu/SKILL.md` 进入。
+完整命令树以 CLI 帮助为准，不在这一页展开。Agent 从 `skills/dagu-cli/SKILL.md` 进入。skill 名是 `dagu-cli`，不是 `dagu`。
 
 ## 安全与隐私
 

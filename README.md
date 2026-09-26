@@ -104,7 +104,7 @@ dagu-cli wiki attachment put --body-file <path> --query '<json>'
 
 `wiki attachment put` is the one command that sends raw bytes. `run step logs form` and `run sub step logs form` send `--body` as `application/x-www-form-urlencoded`.
 
-The full tree is the CLI help, not this page. Start with `skills/dagu/SKILL.md` if you are an agent.
+The full tree is the CLI help, not this page. Start with `skills/dagu-cli/SKILL.md` if you are an agent. The skill name is `dagu-cli`, not `dagu`.
 
 ## Security and privacy
 

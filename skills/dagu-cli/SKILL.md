@@ -1,5 +1,5 @@
 ---
-name: dagu
+name: dagu-cli
 description: Operate a Dagu server through the dagu-cli command tree. Use when listing or changing DAGs, runs, webhooks, sync, wiki, profiles, queues, secrets, or admin resources. Do not use for authoring DAG YAML fields; use the official Dagu authoring skill for YAML syntax.
 ---
 
