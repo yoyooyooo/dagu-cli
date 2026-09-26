@@ -12,7 +12,7 @@ Until a private contact is published, keep the report off public channels. The m
 
 ## What this CLI does
 
-The CLI reads `DAGU_API_KEY` or `DAGU_API_TOKEN` from the environment and sends it as `Authorization: Bearer` to `DAGU_BASE_URL` (default `http://127.0.0.1:8080`). `webhook trigger` sends `--token` instead, plus `--signature` and `--profile` when you pass them.
+The CLI reads `DAGU_API_KEY` or `DAGU_API_TOKEN` from the environment, unless `~/.config/dagu/automation.json` (or `DAGU_CONFIG_FILE`) contains `key`. That file is the same private credential file the automation catalog client uses. Optional `baseUrl` in the file overrides `DAGU_BASE_URL`. `--base-url` still wins. The default origin is `http://127.0.0.1:8080`. The file must be a regular file owned by the current user with mode 600; a symlink or a wider mode is refused and its contents are not logged. `webhook trigger` sends `--token` instead, plus `--signature` and `--profile` when you pass them.
 
 It does not write a config file, does not phone home, and does not log the key. Error text replaces the API key with `[redacted]`. `--body-file` reads the path you pass. Every other request goes only to the Dagu server you configured.
 

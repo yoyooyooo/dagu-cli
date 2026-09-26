@@ -75,7 +75,11 @@ export DAGU_API_KEY=<api-key>
 bun run dagu-cli -- dag list
 ```
 
-`DAGU_API_TOKEN` is accepted as an alias. If the base URL already ends in `/api/v1`, that path is not appended twice. A successful response has `"ok": true` and a `status` of 200. The DAG array is at `result.body`. The exact server payload depends on your Dagu version.
+`DAGU_API_TOKEN` is accepted as an alias. If the base URL already ends in `/api/v1`, that path is not appended twice. Do not put `/mcp` or the key on the URL.
+
+Optional config file: `~/.config/dagu/automation.json` (override the path with `DAGU_CONFIG_FILE`). This is the same owner-private mode 600 file the automation catalog client uses, not a second secret store. `key` is the bearer (`apiKey` is accepted only when `key` is absent). Optional `baseUrl` is the REST origin. Priority is `--base-url`, then the file, then `DAGU_BASE_URL` / `DAGU_API_KEY`, then `http://127.0.0.1:8080`. A missing file changes nothing. The CLI does not write the file.
+
+A successful response has `"ok": true` and a `status` of 200. The DAG array is at `result.body`. The exact server payload depends on your Dagu version.
 
 Inspect the next layer before changing anything:
 
@@ -108,7 +112,7 @@ The full tree is the CLI help, not this page. Start with `skills/dagu-cli/SKILL.
 
 ## Security and privacy
 
-The CLI sends the API key only to the base URL you set. It reads `--body-file` from the local path you pass. It does not write a config file and does not send data anywhere else. Error text replaces the API key with `[redacted]`.
+The CLI sends the API key only to the base URL you set. It reads `--body-file` from the local path you pass. It may read `~/.config/dagu/automation.json` when that file is an owner-private regular file; it does not write a config file and does not send data anywhere else. Error text replaces the API key with `[redacted]` and does not print the file.
 
 There is no second confirmation prompt. A command whose HTTP method is POST, PUT, PATCH, or DELETE changes the server. Run those only when that effect is intended.
 
