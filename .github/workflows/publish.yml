@@ -91,26 +91,29 @@ jobs:
           else
             gh release create "$RELEASE_TAG" --title "$RELEASE_TAG" --notes "dagu-cli ${PACKAGE_VERSION}" --verify-tag
           fi
-      # Join the tailnet ephemerally, then start the automation fleet-upgrade DAG.
+      # Join the tailnet ephemerally, then start automation global-pkg-upgrade.
       # Secrets: TAILSCALE_AUTHKEY (GHA; aligned with ts-authkey-rotate), DAGU_API_KEY.
       # DAGU_BASE_URL defaults to the fleet HTTPS origin from agent-kit env.fleet.sh.
       - name: Join Tailscale
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-      - name: Start dagu-cli-fleet-upgrade
+      - name: Start global-pkg-upgrade
         env:
           DAGU_BASE_URL: https://dagu-mini.tail9146e0.ts.net
           DAGU_API_KEY: ${{ secrets.DAGU_API_KEY }}
         run: |
           set -euo pipefail
           if [ -z "${DAGU_API_KEY:-}" ]; then
-            echo "DAGU_API_KEY secret is required to start the fleet upgrade DAG" >&2
+            echo "DAGU_API_KEY secret is required to start global-pkg-upgrade" >&2
             exit 1
           fi
           # Install the just-verified package so --param is available (>= 0.1.2).
           bun install -g "dagu-cli@${PACKAGE_VERSION}"
           export PATH="${HOME}/.bun/bin:${PATH}"
-          echo "starting dagu-cli-fleet-upgrade version=${PACKAGE_VERSION} base_url=${DAGU_BASE_URL}"
+          echo "starting global-pkg-upgrade package=dagu-cli manager=bun version=${PACKAGE_VERSION} base_url=${DAGU_BASE_URL}"
           # Do not print DAGU_API_KEY / Tailscale secrets.
-          dagu-cli dag start dagu-cli-fleet-upgrade --param "version=${PACKAGE_VERSION}"
+          dagu-cli dag start global-pkg-upgrade \
+            --param "package=dagu-cli" \
+            --param "manager=bun" \
+            --param "version=${PACKAGE_VERSION}"
