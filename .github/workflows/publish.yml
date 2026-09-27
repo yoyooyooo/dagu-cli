@@ -67,14 +67,16 @@ jobs:
             exit 0
           fi
           npm publish "$TARBALL" --access public --provenance --registry https://registry.npmjs.org/
+      # Registry lag is common after publish; lengthen retries rather than skipping success.
       - name: Verify npm package
         run: |
-          for attempt in 1 2 3 4 5 6; do
+          for attempt in $(seq 1 12); do
             published="$(npm view "dagu-cli@${PACKAGE_VERSION}" version --registry https://registry.npmjs.org/ 2>/tmp/npm-view.err || true)"
             if [ "$published" = "$PACKAGE_VERSION" ]; then
+              echo "verified dagu-cli@${PACKAGE_VERSION} (attempt ${attempt})"
               exit 0
             fi
-            if [ "$attempt" = "6" ]; then
+            if [ "$attempt" = "12" ]; then
               cat /tmp/npm-view.err >&2
               exit 1
             fi
@@ -89,3 +91,26 @@ jobs:
           else
             gh release create "$RELEASE_TAG" --title "$RELEASE_TAG" --notes "dagu-cli ${PACKAGE_VERSION}" --verify-tag
           fi
+      # Join the tailnet ephemerally, then start the automation fleet-upgrade DAG.
+      # Secrets: TAILSCALE_AUTHKEY (GHA; aligned with ts-authkey-rotate), DAGU_API_KEY.
+      # DAGU_BASE_URL defaults to the fleet HTTPS origin from agent-kit env.fleet.sh.
+      - name: Join Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+      - name: Start dagu-cli-fleet-upgrade
+        env:
+          DAGU_BASE_URL: https://dagu-mini.tail9146e0.ts.net
+          DAGU_API_KEY: ${{ secrets.DAGU_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DAGU_API_KEY:-}" ]; then
+            echo "DAGU_API_KEY secret is required to start the fleet upgrade DAG" >&2
+            exit 1
+          fi
+          # Install the just-verified package so --param is available (>= 0.1.2).
+          bun install -g "dagu-cli@${PACKAGE_VERSION}"
+          export PATH="${HOME}/.bun/bin:${PATH}"
+          echo "starting dagu-cli-fleet-upgrade version=${PACKAGE_VERSION} base_url=${DAGU_BASE_URL}"
+          # Do not print DAGU_API_KEY / Tailscale secrets.
+          dagu-cli dag start dagu-cli-fleet-upgrade --param "version=${PACKAGE_VERSION}"
