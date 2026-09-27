@@ -4,7 +4,10 @@ This project uses semantic versioning. Before 1.0.0, minor versions may change c
 
 ## Unreleased
 
+## 0.1.2
+
 - Read optional `~/.config/dagu/automation.json` (`key`, optional `baseUrl`) before `DAGU_API_KEY` / `DAGU_BASE_URL`. This is the automation catalog credential file, not a second secret store. The CLI still does not write it.
+- `dag start`, `dag start sync`, `dag enqueue`, `run start spec`, and `run enqueue spec` accept repeatable `--param key=value` and one `--params-file <object.json>`. Scalar values are stringified into `body.params`. Other body fields stay on `--body`.
 
 ## 0.1.1
 
