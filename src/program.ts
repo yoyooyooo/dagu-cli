@@ -35,6 +35,8 @@ type Invocation = {
   readonly positionals: readonly string[];
   readonly query: Record<string, unknown>;
   readonly flags: Readonly<Record<string, string>>;
+  readonly params: readonly (readonly [string, string])[];
+  readonly paramsFile?: string;
   readonly bodyText?: string;
   readonly bodyFile?: string;
   readonly baseUrl?: string;
@@ -50,6 +52,16 @@ const STREAM_DEFAULT = new Set([
   "GetSubDAGRunStepLog",
   "DownloadSubDAGRunStepLog",
 ]);
+
+const PARAMS_OPS = new Set([
+  "ExecuteDAG",
+  "ExecuteDAGSync",
+  "EnqueueDAGDAGRun",
+  "ExecuteDAGRunFromSpec",
+  "EnqueueDAGRunFromSpec",
+]);
+
+const paramsHelp = "Repeat --param key=value and/or pass --params-file <object.json>. Values are stringified into body.params. Other fields stay on --body.";
 
 const callHint = "Path parameters are positional. Filters are --query '<json>' or --<name> <value>. Do not invent short flags such as -q.";
 const shortCall = "filters: --query JSON or --<name>";
@@ -80,6 +92,7 @@ const help = (tokens: readonly string[]): Envelope => {
         skill: matched.skill,
         call: shortCall,
         ...(matched.body === "none" ? {} : { body: matched.body }),
+        ...(PARAMS_OPS.has(matched.operationId) ? { params: paramsHelp } : {}),
         ...(STREAM_DEFAULT.has(matched.operationId) ? { defaults: { stream: false } } : {}),
       },
     };
@@ -127,6 +140,8 @@ const parseInvocation = (argv: readonly string[]): Effect.Effect<Invocation, Cli
   const invocation: {
     query?: string;
     flags: Record<string, string>;
+    params: (readonly [string, string])[];
+    paramsFile?: string;
     body?: string;
     bodyFile?: string;
     baseUrl?: string;
@@ -134,12 +149,31 @@ const parseInvocation = (argv: readonly string[]): Effect.Effect<Invocation, Cli
     webhookToken?: string;
     signature?: string;
     profile?: string;
-  } = { timeoutMs: 30_000, flags: {} };
+  } = { timeoutMs: 30_000, flags: {}, params: [] };
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (!token) continue;
     const valued = new Set(["--query", "--body", "--body-file", "--base-url", "--timeout-ms", "--token", "--signature", "--profile"]);
     if (token.startsWith("-") && !token.startsWith("--")) return Effect.fail(usage(`Unknown flag ${token}. ${callHint}`));
+    if (token === "--param") {
+      const value = argv[index + 1];
+      if (value === undefined || value.startsWith("--")) return Effect.fail(usage("--param needs key=value (value may be empty; first '=' splits)."));
+      index += 1;
+      try {
+        invocation.params.push(parseParamFlag(value));
+      } catch (error) {
+        return Effect.fail(asUsage(error));
+      }
+      continue;
+    }
+    if (token === "--params-file") {
+      const value = argv[index + 1];
+      if (!value || value.startsWith("--")) return Effect.fail(usage("--params-file needs a path."));
+      if (invocation.paramsFile !== undefined) return Effect.fail(usage("--params-file can only be passed once."));
+      index += 1;
+      invocation.paramsFile = value;
+      continue;
+    }
     if (!valued.has(token)) {
       if (token.startsWith("--")) {
         const flagValue = argv[index + 1];
@@ -170,6 +204,8 @@ const parseInvocation = (argv: readonly string[]): Effect.Effect<Invocation, Cli
       positionals,
       query,
       flags: invocation.flags,
+      params: invocation.params,
+      paramsFile: invocation.paramsFile,
       bodyText: invocation.body,
       bodyFile: invocation.bodyFile,
       baseUrl: invocation.baseUrl,
@@ -186,6 +222,71 @@ const coerceFlag = (value: string): unknown => {
   if (value === "false") return false;
   if (/^-?\d+$/.test(value)) return Number(value);
   return value;
+};
+
+const parseParamFlag = (token: string): readonly [string, string] => {
+  const eq = token.indexOf("=");
+  if (eq <= 0) throw usage("--param needs key=value (value may be empty; first '=' splits).");
+  const key = token.slice(0, eq);
+  if (key.trim() !== key || key.includes(" ") || key.includes("\t")) {
+    throw usage(`--param key ${JSON.stringify(key)} is invalid.`);
+  }
+  return [key, token.slice(eq + 1)];
+};
+
+const isParamScalar = (value: unknown): value is string | number | boolean =>
+  typeof value === "string" || (typeof value === "number" && Number.isFinite(value)) || typeof value === "boolean";
+
+const asUsage = (error: unknown): CliError => (error instanceof CliError ? error : usage("Cannot read a JSON object from params file."));
+
+const readStdin = async (): Promise<string> => {
+  if (process.stdin.isTTY) throw usage("--params-file - cannot read from a terminal.");
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  return Buffer.concat(chunks).toString("utf8");
+};
+
+const readParamsObject = async (file: string): Promise<Record<string, string | number | boolean>> => {
+  let text: string;
+  try {
+    text = file === "-" ? await readStdin() : await readFile(file, "utf8");
+  } catch (error) {
+    if (error instanceof CliError) throw error;
+    throw usage(`Cannot read a JSON object from ${file}.`);
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text);
+  } catch {
+    throw usage(`Cannot read a JSON object from ${file}.`);
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw usage("--params-file must be a JSON object, not an array or scalar. Positional params stay on --body.");
+  }
+  for (const [key, value] of Object.entries(parsed)) {
+    if (!isParamScalar(value)) {
+      throw usage(`--params-file key ${JSON.stringify(key)} must be a string, number, or boolean. Pass structured data as a JSON string.`);
+    }
+  }
+  return parsed as Record<string, string | number | boolean>;
+};
+
+const applyParamsSugar = (
+  body: unknown,
+  file: Record<string, string | number | boolean> | undefined,
+  pairs: readonly (readonly [string, string])[],
+): unknown => {
+  const merged: Record<string, string | number | boolean> = { ...(file ?? {}) };
+  for (const [key, value] of pairs) merged[key] = value;
+  if (body === undefined) body = {};
+  if (body === null || typeof body !== "object" || Array.isArray(body)) {
+    throw usage("--param/--params-file require the request body to be a JSON object.");
+  }
+  const record = body as Record<string, unknown>;
+  if ("params" in record) {
+    throw usage("body.params is already set. Remove it, or drop --param/--params-file.");
+  }
+  return { ...record, params: JSON.stringify(merged) };
 };
 
 const jsonObject = (value: string, flag: string): Effect.Effect<Record<string, unknown>, CliError> =>
@@ -254,7 +355,22 @@ export const run = (argv: readonly string[]): Effect.Effect<Envelope, CliError> 
       query[name] = coerceFlag(value);
     }
     if (STREAM_DEFAULT.has(command.operationId) && query.stream === undefined) query.stream = false;
-    const body = yield* readBody(invocation, command);
+    let body = yield* readBody(invocation, command);
+    if (invocation.params.length > 0 || invocation.paramsFile !== undefined) {
+      if (!PARAMS_OPS.has(command.operationId)) {
+        return yield* Effect.fail(usage("--param/--params-file are only valid on dag start, dag start sync, dag enqueue, run start spec, and run enqueue spec."));
+      }
+      const file = invocation.paramsFile
+        ? yield* Effect.tryPromise({
+            try: () => readParamsObject(invocation.paramsFile!),
+            catch: (error) => asUsage(error),
+          })
+        : undefined;
+      body = yield* Effect.try({
+        try: () => applyParamsSugar(body, file, invocation.params),
+        catch: (error) => asUsage(error),
+      });
+    }
     const headers: Record<string, string> = {};
     if (command.operationId === "TriggerWebhook") {
       if (!invocation.webhookToken) return yield* Effect.fail(usage("webhook trigger requires --token."));

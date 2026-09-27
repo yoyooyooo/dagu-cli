@@ -217,6 +217,174 @@ describe("config", () => {
   });
 });
 
+describe("params sugar", () => {
+  const previous = { key: process.env.DAGU_API_KEY, url: process.env.DAGU_BASE_URL };
+  const restoreEnv = () => {
+    if (previous.key === undefined) delete process.env.DAGU_API_KEY;
+    else process.env.DAGU_API_KEY = previous.key;
+    if (previous.url === undefined) delete process.env.DAGU_BASE_URL;
+    else process.env.DAGU_BASE_URL = previous.url;
+  };
+
+  const capture = async (argv: readonly string[]) => {
+    const seen: { url: string; body: string | undefined }[] = [];
+    const original = globalThis.fetch;
+    process.env.DAGU_API_KEY = "test-key";
+    process.env.DAGU_BASE_URL = "http://127.0.0.1:8080";
+    globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+      seen.push({ url: String(input), body: typeof init?.body === "string" ? init.body : undefined });
+      return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
+    }) as typeof fetch;
+    try {
+      const envelope = await execute(argv);
+      return { envelope, seen };
+    } finally {
+      globalThis.fetch = original;
+      restoreEnv();
+    }
+  };
+
+  test("repeatable --param becomes a compact params string", async () => {
+    const { envelope, seen } = await capture([
+      "dag", "start", "herdr-settle",
+      "--param", "agent_name=x",
+      "--param", "webhook_url=https://example.test/hook",
+      "--param", "agent_name=last",
+    ]);
+    expect(envelope.ok).toBe(true);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]?.url).toBe("http://127.0.0.1:8080/api/v1/dags/herdr-settle/start");
+    expect(seen[0]?.body).toBe('{"params":"{\\"agent_name\\":\\"last\\",\\"webhook_url\\":\\"https://example.test/hook\\"}"}');
+  });
+
+  test("--body siblings stay put and --param values are not coerced", async () => {
+    const { envelope, seen } = await capture([
+      "dag", "start", "herdr-settle",
+      "--body", '{"singleton":true}',
+      "--param", "id=007",
+      "--param", "flag=true",
+    ]);
+    expect(envelope.ok).toBe(true);
+    expect(seen[0]?.body).toBe('{"singleton":true,"params":"{\\"id\\":\\"007\\",\\"flag\\":\\"true\\"}"}');
+  });
+
+  test("a value may contain '=' and spaces, including an empty value", async () => {
+    const { envelope, seen } = await capture([
+      "dag", "start", "herdr-settle",
+      "--param", "msg=hello world=x",
+      "--param", "webhook_url=",
+    ]);
+    expect(envelope.ok).toBe(true);
+    expect(seen[0]?.body).toBe('{"params":"{\\"msg\\":\\"hello world=x\\",\\"webhook_url\\":\\"\\"}"}');
+  });
+
+  test("params file is the base and a later --param string replaces that key", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "dagu-cli-params-"));
+    const file = join(dir, "params.json");
+    await writeFile(file, '{"age":30,"ok":true}');
+    const { envelope, seen } = await capture(["dag", "start", "herdr-settle", "--params-file", file, "--param", "age=31"]);
+    expect(envelope.ok).toBe(true);
+    expect(JSON.parse(seen[0]?.body ?? "{}").params).toBe('{"age":"31","ok":true}');
+  });
+
+  test("an explicit empty params file still sends {}", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "dagu-cli-params-empty-"));
+    const file = join(dir, "empty.json");
+    await writeFile(file, "{}");
+    const sent = await capture(["dag", "start", "herdr-settle", "--params-file", file]);
+    const omitted = await capture(["dag", "start", "herdr-settle"]);
+    expect(sent.envelope.ok).toBe(true);
+    expect(JSON.parse(sent.seen[0]?.body ?? "{}").params).toBe("{}");
+    expect(omitted.envelope.ok).toBe(true);
+    expect(omitted.seen[0]?.body).toBeUndefined();
+  });
+
+  test("enqueue, start sync, and spec runs get the same params string", async () => {
+    const args = ["--param", "agent_name=x"] as const;
+    const enqueue = await capture(["dag", "enqueue", "herdr-settle", ...args]);
+    const sync = await capture(["dag", "start", "sync", "herdr-settle", ...args]);
+    const startSpec = await capture(["run", "start", "spec", ...args]);
+    const enqueueSpec = await capture(["run", "enqueue", "spec", ...args]);
+    const params = '{"agent_name":"x"}';
+    expect(enqueue.seen[0]?.url).toBe("http://127.0.0.1:8080/api/v1/dags/herdr-settle/enqueue");
+    expect(sync.seen[0]?.url).toBe("http://127.0.0.1:8080/api/v1/dags/herdr-settle/start-sync");
+    expect(startSpec.seen[0]?.url).toBe("http://127.0.0.1:8080/api/v1/dag-runs");
+    expect(enqueueSpec.seen[0]?.url).toBe("http://127.0.0.1:8080/api/v1/dag-runs/enqueue");
+    for (const item of [enqueue, sync, startSpec, enqueueSpec]) {
+      expect(item.envelope.ok).toBe(true);
+      expect(JSON.parse(item.seen[0]?.body ?? "{}").params).toBe(params);
+    }
+  });
+
+  test("bad params files, a second file, the wrong command, a non-object body, and a pre-set params field do not fetch", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "dagu-cli-params-bad-"));
+    const nested = join(dir, "nested.json");
+    const list = join(dir, "list.json");
+    const ok = join(dir, "ok.json");
+    const infinite = join(dir, "infinite.json");
+    await writeFile(nested, '{"meta":{"a":1}}');
+    await writeFile(list, "[]");
+    await writeFile(ok, '{"age":30}');
+    await writeFile(infinite, '{"n":1e309}');
+    const cases = [
+      ["dag", "start", "herdr-settle", "--params-file", nested],
+      ["dag", "start", "herdr-settle", "--params-file", list],
+      ["dag", "start", "herdr-settle", "--params-file", ok, "--params-file", ok],
+      ["dag", "start", "herdr-settle", "--params-file", infinite],
+      ["dag", "list", "--param", "agent_name=x"],
+      ["dag", "start", "herdr-settle", "--body", '{"params":"{}"}', "--param", "agent_name=x"],
+      ["dag", "start", "herdr-settle", "--body", "[]", "--param", "agent_name=x"],
+      ["dag", "start", "herdr-settle", "--param", "bad key=secret-token"],
+    ];
+    for (const argv of cases) {
+      const { envelope, seen } = await capture(argv);
+      expect(envelope.ok).toBe(false);
+      expect(envelope.error?.code).toBe("USAGE");
+      expect(envelope.error?.message).not.toContain("Unknown flag");
+      expect(seen).toHaveLength(0);
+    }
+    const nestedResult = await capture(["dag", "start", "herdr-settle", "--params-file", nested]);
+    expect(nestedResult.envelope.error?.message).toContain(JSON.stringify("meta"));
+    expect(nestedResult.envelope.error?.message).not.toContain('{"a":1}');
+    const preset = await capture(["dag", "start", "herdr-settle", "--body", '{"params":"{}"}', "--param", "agent_name=x"]);
+    expect(preset.envelope.error?.message).toContain("body.params is already set");
+    const spaced = await capture(["dag", "start", "herdr-settle", "--param", "bad key=secret-token"]);
+    expect(spaced.envelope.error?.message).toContain(JSON.stringify("bad key"));
+    expect(spaced.envelope.error?.message).not.toContain("secret-token");
+  });
+
+  test("--params-file - reads a scalar object from stdin", async () => {
+    const { Readable } = await import("node:stream");
+    const original = process.stdin;
+    const stream = Readable.from([Buffer.from('{"hook":"https://example.test/h"}')]);
+    Object.defineProperty(stream, "isTTY", { value: false });
+    Object.defineProperty(process, "stdin", { configurable: true, value: stream });
+    try {
+      const { envelope, seen } = await capture(["dag", "start", "herdr-settle", "--params-file", "-"]);
+      expect(envelope.ok).toBe(true);
+      expect(JSON.parse(seen[0]?.body ?? "{}").params).toBe('{"hook":"https://example.test/h"}');
+    } finally {
+      Object.defineProperty(process, "stdin", { configurable: true, value: original });
+    }
+  });
+
+  test("leaf help documents the params sugar and other leaves do not", async () => {
+    const start = await execute(["dag", "start", "--help"]);
+    const list = await execute(["dag", "list", "--help"]);
+    const sync = await execute(["dag", "start", "sync", "--help"]);
+    const enqueue = await execute(["dag", "enqueue", "--help"]);
+    const startSpec = await execute(["run", "start", "spec", "--help"]);
+    const enqueueSpec = await execute(["run", "enqueue", "spec", "--help"]);
+    const text = "Repeat --param key=value and/or pass --params-file <object.json>. Values are stringified into body.params. Other fields stay on --body.";
+    for (const help of [start, sync, enqueue, startSpec, enqueueSpec]) {
+      expect(help.ok).toBe(true);
+      expect((help.result as { params?: string }).params).toBe(text);
+    }
+    expect(list.ok).toBe(true);
+    expect(JSON.stringify(list.result)).not.toContain("--params-file");
+  });
+});
+
 describe("url", () => {
   test("joins the API root and encodes path values", () => {
     expect(apiRoot("https://dagu.example")).toBe("https://dagu.example/api/v1");
