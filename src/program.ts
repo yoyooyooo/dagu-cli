@@ -7,8 +7,11 @@ import { loadConfig } from "./config.ts";
 import { CliError, usage } from "./errors.ts";
 import { callOperation } from "./http.ts";
 import { findOperation } from "./openapi.ts";
+import { projectDagParams } from "./params.ts";
 
-const commandPath = join(dirname(fileURLToPath(import.meta.url)), "../spec/commands.json");
+const specDir = join(dirname(fileURLToPath(import.meta.url)), "../spec");
+const commandPath = join(specDir, "commands.json");
+const derivedPath = join(specDir, "derived.json");
 
 export type CommandSpec = {
   readonly argv: readonly string[];
@@ -21,6 +24,19 @@ export type CommandSpec = {
   readonly queryParams: readonly string[];
   readonly headerParams: readonly string[];
   readonly body: "json" | "form" | "bytes" | "none";
+};
+
+type DerivedSpec = {
+  readonly argv: readonly string[];
+  readonly operationId: string;
+  readonly skill: string;
+  readonly method: string;
+  readonly path: string;
+  readonly summary: string;
+  readonly pathParams: readonly string[];
+  readonly queryParams: readonly string[];
+  readonly localFlags: readonly string[];
+  readonly projection: "params";
 };
 
 export type Envelope = {
@@ -67,6 +83,7 @@ const callHint = "Path parameters are positional. Filters are --query '<json>' o
 const shortCall = "filters: --query JSON or --<name>";
 
 const commands = JSON.parse(readFileSync(commandPath, "utf8")) as CommandSpec[];
+const derivedCommands = JSON.parse(readFileSync(derivedPath, "utf8")) as DerivedSpec[];
 
 const samePrefix = (command: readonly string[], tokens: readonly string[]): boolean =>
   command.every((word, index) => tokens[index] === word);
@@ -74,11 +91,32 @@ const samePrefix = (command: readonly string[], tokens: readonly string[]): bool
 const longestCommand = (tokens: readonly string[]): CommandSpec | undefined =>
   commands.filter((command) => samePrefix(command.argv, tokens)).sort((left, right) => right.argv.length - left.argv.length)[0];
 
-const usageLine = (command: CommandSpec): string =>
+const longestDerived = (tokens: readonly string[]): DerivedSpec | undefined =>
+  derivedCommands.filter((command) => samePrefix(command.argv, tokens)).sort((left, right) => right.argv.length - left.argv.length)[0];
+
+const usageLine = (command: { readonly argv: readonly string[]; readonly pathParams: readonly string[] }): string =>
   ["dagu-cli", ...command.argv, ...command.pathParams.map((name) => `<${name}>`)].join(" ");
+
+const derivedHelp = (command: DerivedSpec): Envelope => ({
+  ok: true,
+  command: "help",
+  result: {
+    usage: usageLine(command),
+    summary: command.summary,
+    method: command.method,
+    path: command.path,
+    query: command.queryParams,
+    localFlags: command.localFlags,
+    skill: command.skill,
+    call: shortCall,
+    note: "Stdout is the parameter contract, not the dag get body. Descriptions starting with Deprecated are omitted unless --include-deprecated true; required parameters are never omitted. The catalog is the synced snapshot, not a dirty automation checkout.",
+  },
+});
 
 const help = (tokens: readonly string[]): Envelope => {
   const matched = longestCommand(tokens);
+  const derived = longestDerived(tokens);
+  if (derived && derived.argv.length === tokens.length && (!matched || derived.argv.length >= matched.argv.length)) return derivedHelp(derived);
   if (matched && matched.argv.length === tokens.length) {
     return {
       ok: true,
@@ -97,14 +135,14 @@ const help = (tokens: readonly string[]): Envelope => {
       },
     };
   }
-  const children = commands.filter((command) => samePrefix(tokens, command.argv));
-  const groups = new Map<string, CommandSpec[]>();
+  const catalog: readonly { readonly argv: readonly string[]; readonly summary: string; readonly pathParams: readonly string[] }[] = [...commands, ...derivedCommands];
+  const children = catalog.filter((command) => samePrefix(tokens, command.argv));
+  const groups = new Map<string, typeof catalog>();
   for (const command of children) {
     const next = command.argv[tokens.length];
     if (!next) continue;
     const bucket = groups.get(next) ?? [];
-    bucket.push(command);
-    groups.set(next, bucket);
+    groups.set(next, [...bucket, command]);
   }
   const entries = [...groups.entries()].map(([name, bucket]) => {
     const leaf = bucket.find((command) => command.argv.length === tokens.length + 1);
@@ -121,16 +159,17 @@ const help = (tokens: readonly string[]): Envelope => {
 };
 
 const skillText = (name: string): Envelope => {
-  const names = [...new Set(commands.map((command) => command.skill))].sort();
+  const names = [...new Set([...commands.map((command) => command.skill), ...derivedCommands.map((command) => command.skill)])].sort();
   if (name === "list") return { ok: true, command: "skills", result: { skills: names } };
   const selected = commands.filter((command) => command.skill === name);
-  if (!selected.length) return { ok: false, command: "skills", error: { code: "USAGE", message: `Unknown skill ${name}.`, retryable: false } };
+  const extra = derivedCommands.filter((command) => command.skill === name);
+  if (!selected.length && !extra.length) return { ok: false, command: "skills", error: { code: "USAGE", message: `Unknown skill ${name}.`, retryable: false } };
   return {
     ok: true,
     command: "skills",
     result: {
       skill: name,
-      commands: selected.map((command) => ({ usage: usageLine(command), summary: command.summary })),
+      commands: [...selected, ...extra].map((command) => ({ usage: usageLine(command), summary: command.summary })),
     },
   };
 };
@@ -320,6 +359,82 @@ const readBody = (invocation: Invocation, command: CommandSpec): Effect.Effect<u
   return Effect.succeed(undefined);
 };
 
+const booleanFlag = (value: unknown): boolean | undefined => {
+  if (value === true || value === "true") return true;
+  if (value === false || value === "false") return false;
+  return undefined;
+};
+
+const runDerived = (command: DerivedSpec, invocation: Invocation): Effect.Effect<Envelope, CliError> =>
+  Effect.gen(function* () {
+    const args = invocation.positionals.slice(command.argv.length);
+    if (args.length === 0 && command.pathParams.length > 0) return derivedHelp(command);
+    if (args.length !== command.pathParams.length) return yield* Effect.fail(usage(`Usage: ${usageLine(command)}`));
+    if (invocation.params.length > 0 || invocation.paramsFile !== undefined) {
+      return yield* Effect.fail(usage("--param/--params-file are only valid on dag start, dag start sync, dag enqueue, run start spec, and run enqueue spec."));
+    }
+    const query: Record<string, unknown> = { ...invocation.query };
+    let includeDeprecated = false;
+    if ("include-deprecated" in query) {
+      const parsed = booleanFlag(query["include-deprecated"]);
+      if (parsed === undefined) return yield* Effect.fail(usage("--include-deprecated must be true or false."));
+      includeDeprecated = parsed;
+      delete query["include-deprecated"];
+    }
+    if (invocation.flags["include-deprecated"] !== undefined) {
+      const parsed = booleanFlag(invocation.flags["include-deprecated"]);
+      if (parsed === undefined) return yield* Effect.fail(usage("--include-deprecated must be true or false."));
+      includeDeprecated = parsed;
+    }
+    for (const [name, value] of Object.entries(invocation.flags)) {
+      if (name === "include-deprecated") continue;
+      if (!command.queryParams.includes(name)) {
+        const names = command.queryParams.map((item) => `--${item}`).join(", ");
+        const local = command.localFlags.map((item) => `--${item}`).join(", ");
+        return yield* Effect.fail(usage(`Unknown flag --${name}. ${callHint} Accepted filters: ${names || "none"}. Local flags: ${local || "none"}.`));
+      }
+      query[name] = coerceFlag(value);
+    }
+    const path: Record<string, string> = {};
+    command.pathParams.forEach((name, index) => {
+      const value = args[index];
+      if (value) path[name] = value;
+    });
+    const config = yield* loadConfig({ baseUrl: invocation.baseUrl });
+    const operation = yield* findOperation(command.operationId);
+    const response = yield* callOperation({
+      baseUrl: config.baseUrl,
+      apiKey: config.apiKey,
+      operation,
+      path,
+      query,
+      body: undefined,
+      bodyKind: "none",
+      headers: {},
+      timeoutMs: invocation.timeoutMs,
+    });
+    const commandName = command.argv.join(" ");
+    if (response.status >= 400) {
+      return {
+        ok: false,
+        command: commandName,
+        status: response.status,
+        result: { command: commandName, operationId: command.operationId, method: command.method, path: command.path, body: response.body },
+        error: { code: `HTTP_${response.status}`, message: `Dagu returned HTTP ${response.status}.`, retryable: response.status === 429 || response.status >= 500 },
+      };
+    }
+    const projected = projectDagParams(response.body, { fileName: args[0] ?? "", includeDeprecated });
+    if (!projected.ok) {
+      return {
+        ok: false,
+        command: commandName,
+        status: response.status,
+        error: { code: "PROJECTION", message: "GetDAGDetails response has no dag object to project. The raw body was not included.", retryable: false },
+      };
+    }
+    return { ok: true, command: commandName, status: response.status, result: projected.view };
+  });
+
 export const run = (argv: readonly string[]): Effect.Effect<Envelope, CliError> =>
   Effect.gen(function* () {
     if (argv.length === 0 || argv.includes("--help") || argv.includes("-h") || argv[0] === "help") {
@@ -332,7 +447,9 @@ export const run = (argv: readonly string[]): Effect.Effect<Envelope, CliError> 
       return skillText(argv[2]);
     }
     const invocation = yield* parseInvocation(argv);
+    const derived = longestDerived(invocation.positionals);
     const command = longestCommand(invocation.positionals);
+    if (derived && (!command || derived.argv.length >= command.argv.length)) return yield* runDerived(derived, invocation);
     if (!command) {
       const group = commands.some((item) => item.argv.length > invocation.positionals.length && invocation.positionals.every((token, index) => item.argv[index] === token));
       if (group) return help(invocation.positionals);

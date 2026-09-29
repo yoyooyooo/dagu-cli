@@ -18,6 +18,7 @@
     "src",
     "spec/openapi.json",
     "spec/commands.json",
+    "spec/derived.json",
     "skills",
     "README.md",
     "README.zh-CN.md",

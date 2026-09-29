@@ -95,6 +95,7 @@ bun run dagu-cli -- dag start --help
 路径参数是位置参数。过滤用 `--query '<json object>'` 或 `--<name> <value>`，例如 `--limit 5`、`--q <text>`。不接受 `-q`。`run step log` 默认发送 `stream=false`，除非另外传 `--stream`。JSON body 放在 `--body` 或 `--body-file`。
 
 ```text
+dagu-cli dag params <fileName>
 dagu-cli dag get <fileName>
 dagu-cli dag spec get <fileName>
 dagu-cli run list
@@ -103,6 +104,8 @@ dagu-cli run log <name> <dagRunId>
 dagu-cli webhook trigger <fileName> --token <webhook-token>
 dagu-cli wiki attachment put --body-file <path> --query '<json>'
 ```
+
+`dag params` 打印参数契约（`result.params` 和一个小头部）。`dag get` 仍是完整运维视图。description 以 `Deprecated` 开头的参数默认省略，除非 `--include-deprecated true`；`required: true` 永不省略。`--remoteNode` 是唯一会发给服务器的查询参数。结果来自已同步的目录，不是尚未发布的 automation 工作区。
 
 `webhook trigger` 不用 `DAGU_API_KEY`。它把 `--token` 当作 bearer token。只有该 webhook 要求时才加 `--signature` 和 `--profile`。
 
