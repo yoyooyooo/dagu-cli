@@ -4,6 +4,8 @@ This project uses semantic versioning. Before 1.0.0, minor versions may change c
 
 ## Unreleased
 
+- `dag params <fileName>` projects the parameter contract from `GetDAGDetails` (`paramDefs`, or `paramSchema` when definitions are absent). `dag get` is unchanged. Descriptions that start with `Deprecated` are omitted unless `--include-deprecated true`. A parameter with `required: true` is never omitted.
+
 ## 0.1.2
 
 - Read optional `~/.config/dagu/automation.json` (`key`, optional `baseUrl`) before `DAGU_API_KEY` / `DAGU_BASE_URL`. This is the automation catalog credential file, not a second secret store. The CLI still does not write it.

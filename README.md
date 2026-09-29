@@ -95,6 +95,7 @@ bun run dagu-cli -- dag start --help
 Path parameters are positional. Filters go in `--query '<json object>'` or `--<name> <value>`, for example `--limit 5` or `--q <text>`. `-q` is not accepted. `run step log` sends `stream=false` unless `--stream` is set. JSON bodies go in `--body` or `--body-file`.
 
 ```text
+dagu-cli dag params <fileName>
 dagu-cli dag get <fileName>
 dagu-cli dag spec get <fileName>
 dagu-cli run list
@@ -103,6 +104,8 @@ dagu-cli run log <name> <dagRunId>
 dagu-cli webhook trigger <fileName> --token <webhook-token>
 dagu-cli wiki attachment put --body-file <path> --query '<json>'
 ```
+
+`dag params` prints the parameter contract (`result.params` and a small header). `dag get` stays the full ops view. Descriptions that start with `Deprecated` are omitted unless `--include-deprecated true`; `required: true` is never omitted. `--remoteNode` is the only server query. The result is the synced catalog, not an unpublished automation checkout.
 
 `webhook trigger` does not use `DAGU_API_KEY`. It sends `--token` as the bearer token. Add `--signature` and `--profile` only when that webhook requires them.
 

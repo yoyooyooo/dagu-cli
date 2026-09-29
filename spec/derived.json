@@ -1,0 +1,14 @@
+[
+  {
+    "argv": ["dag", "params"],
+    "operationId": "GetDAGDetails",
+    "skill": "core",
+    "method": "GET",
+    "path": "/dags/{fileName}",
+    "summary": "Parameter contract for one catalog DAG (result.params and a small header, not the dag get body). Omits descriptions that start with Deprecated unless --include-deprecated true. --remoteNode is the only server query.",
+    "pathParams": ["fileName"],
+    "queryParams": ["remoteNode"],
+    "localFlags": ["include-deprecated"],
+    "projection": "params"
+  }
+]

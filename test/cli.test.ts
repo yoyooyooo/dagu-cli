@@ -385,6 +385,171 @@ describe("params sugar", () => {
   });
 });
 
+describe("dag params", () => {
+  const previous = { key: process.env.DAGU_API_KEY, url: process.env.DAGU_BASE_URL };
+  const restoreEnv = () => {
+    if (previous.key === undefined) delete process.env.DAGU_API_KEY;
+    else process.env.DAGU_API_KEY = previous.key;
+    if (previous.url === undefined) delete process.env.DAGU_BASE_URL;
+    else process.env.DAGU_BASE_URL = previous.url;
+  };
+  const canned = {
+    suspended: false,
+    errors: [],
+    spec: "PROMPT_SENTINEL",
+    latestDAGRun: { prompt: "PROMPT_SENTINEL" },
+    dag: {
+      name: "dispatch-herdr",
+      type: "graph",
+      description: "dispatch",
+      labels: ["purpose=dispatch"],
+      tags: ["PROMPT_SENTINEL"],
+      defaultParams: "PROMPT_SENTINEL",
+      params: ["host=box"],
+      steps: [{ command: "PROMPT_SENTINEL" }],
+      paramDefs: [
+        { name: "callback", type: "string", description: "Deprecated alias" },
+        { name: "host", type: "string", default: "box", description: "Worker host" },
+      ],
+    },
+  };
+
+  const respond = async (argv: readonly string[], status: number, body: unknown) => {
+    const seen: string[] = [];
+    const original = globalThis.fetch;
+    process.env.DAGU_API_KEY = "test-key";
+    process.env.DAGU_BASE_URL = "http://127.0.0.1:8080";
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      seen.push(String(input));
+      return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+    }) as typeof fetch;
+    try {
+      return { envelope: await execute(argv), seen };
+    } finally {
+      globalThis.fetch = original;
+      restoreEnv();
+    }
+  };
+
+  test("is derived, so the operation bijection still has one GetDAGDetails", () => {
+    const derived = JSON.parse(readFileSync(new URL("../spec/derived.json", import.meta.url), "utf8")) as { argv: string[]; operationId: string }[];
+    expect(derived.map((command) => command.argv.join(" "))).toEqual(["dag params"]);
+    expect(commands.filter((command) => command.operationId === "GetDAGDetails")).toHaveLength(1);
+    expect(commands.some((command) => command.argv.join(" ") === "dag params")).toBe(false);
+  });
+
+  test("help and core list dag params without changing dag get", async () => {
+    const paramsHelp = await execute(["dag", "params", "--help"]);
+    const dagHelp = await execute(["dag", "--help"]);
+    const getHelp = await execute(["dag", "get", "--help"]);
+    const core = await execute(["skills", "get", "core"]);
+    const names = ((dagHelp.result as { commands: { command: string }[] }).commands).map((item) => item.command);
+    expect(paramsHelp.ok).toBe(true);
+    expect(paramsHelp.result).toMatchObject({
+      usage: "dagu-cli dag params <fileName>",
+      method: "GET",
+      path: "/dags/{fileName}",
+      query: ["remoteNode"],
+      localFlags: ["include-deprecated"],
+      skill: "core",
+    });
+    expect(names).toContain("params");
+    expect(names).toContain("get");
+    expect(getHelp.result).toMatchObject({ usage: "dagu-cli dag get <fileName>", query: ["remoteNode"], skill: "core" });
+    expect(JSON.stringify(getHelp)).not.toContain("include-deprecated");
+    expect(JSON.stringify(core.result)).toContain("dagu-cli dag params <fileName>");
+  });
+
+  test("missing file name prints help and the wrong arity is usage", async () => {
+    const missing = await execute(["dag", "params"]);
+    const extra = await execute(["dag", "params", "demo", "extra"]);
+    expect(missing).toMatchObject({ ok: true, command: "help" });
+    expect((missing.result as { usage?: string }).usage).toBe("dagu-cli dag params <fileName>");
+    expect(extra.ok).toBe(false);
+    expect(extra.error?.code).toBe("USAGE");
+  });
+
+  test("projects a canned GetDAGDetails body and passes remoteNode through", async () => {
+    const { envelope, seen } = await respond(
+      ["dag", "params", "dispatch-herdr", "--remoteNode", "worker-1", "--include-deprecated", "false"],
+      200,
+      canned,
+    );
+    expect(envelope).toMatchObject({
+      ok: true,
+      command: "dag params",
+      status: 200,
+      result: {
+        fileName: "dispatch-herdr",
+        source: "paramDefs",
+        omittedDeprecated: ["callback"],
+        params: [{ name: "host", type: "string", default: "box", description: "Worker host" }],
+      },
+    });
+    expect(seen).toEqual(["http://127.0.0.1:8080/api/v1/dags/dispatch-herdr?remoteNode=worker-1"]);
+    const text = JSON.stringify(envelope);
+    expect(text).not.toContain("PROMPT_SENTINEL");
+    expect(text).not.toContain("latestDAGRun");
+    expect(text).not.toContain("defaultParams");
+    expect(envelope.result).not.toHaveProperty("body");
+  });
+
+  test("dag get still returns the raw details body", async () => {
+    const { envelope, seen } = await respond(["dag", "get", "dispatch-herdr"], 200, canned);
+    expect(envelope.command).toBe("dag get");
+    expect(envelope.result).toMatchObject({
+      command: "dag get",
+      operationId: "GetDAGDetails",
+      method: "GET",
+      path: "/dags/{fileName}",
+      body: canned,
+    });
+    expect(seen).toEqual(["http://127.0.0.1:8080/api/v1/dags/dispatch-herdr"]);
+  });
+
+  test("include-deprecated is local, and a bad value or --param does not fetch", async () => {
+    const kept = await respond(["dag", "params", "dispatch-herdr", "--include-deprecated", "true"], 200, canned);
+    expect(kept.seen[0]).toBe("http://127.0.0.1:8080/api/v1/dags/dispatch-herdr");
+    expect((kept.envelope.result as { omittedDeprecated: string[]; params: { name: string }[] }).omittedDeprecated).toEqual([]);
+    expect((kept.envelope.result as { params: { name: string }[] }).params.map((param) => param.name)).toEqual(["callback", "host"]);
+
+    const original = globalThis.fetch;
+    let calls = 0;
+    globalThis.fetch = (async (_input: string | URL | Request) => {
+      calls += 1;
+      return new Response("{}", { status: 200 });
+    }) as typeof fetch;
+    try {
+      const bad = await execute(["dag", "params", "dispatch-herdr", "--include-deprecated", "maybe"]);
+      const sugar = await execute(["dag", "params", "dispatch-herdr", "--param", "host=box"]);
+      const unknown = await execute(["dag", "params", "dispatch-herdr", "--limit", "1"]);
+      expect(bad.error?.code).toBe("USAGE");
+      expect(sugar.error?.message).toContain("--param/--params-file");
+      expect(unknown.error?.message).toContain("--remoteNode");
+      expect(unknown.error?.message).toContain("--include-deprecated");
+      expect(calls).toBe(0);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
+  test("HTTP errors keep the server body and a bad 200 does not", async () => {
+    const missing = await respond(["dag", "params", "missing"], 404, { code: "not_found" });
+    expect(missing.envelope).toMatchObject({
+      ok: false,
+      command: "dag params",
+      status: 404,
+      error: { code: "HTTP_404" },
+      result: { body: { code: "not_found" } },
+    });
+    const broken = await respond(["dag", "params", "dispatch-herdr"], 200, { spec: "PROMPT_SENTINEL" });
+    expect(broken.envelope.ok).toBe(false);
+    expect(broken.envelope.error?.code).toBe("PROJECTION");
+    expect(broken.envelope.result).toBeUndefined();
+    expect(JSON.stringify(broken.envelope)).not.toContain("PROMPT_SENTINEL");
+  });
+});
+
 describe("url", () => {
   test("joins the API root and encodes path values", () => {
     expect(apiRoot("https://dagu.example")).toBe("https://dagu.example/api/v1");
