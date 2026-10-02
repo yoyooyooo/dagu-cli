@@ -1,0 +1,97 @@
+# Closed and merged pull requests enqueue worktree-remove-merged.
+# workflow_dispatch is the manual probe. This does not cancel a Dagu run
+# that the coordinator has already accepted.
+# Same contract as yoyooyooo/automation .github/workflows/worktree-remove-merged.yml.
+# Closed but unmerged pull requests do not enqueue. The DAG refuses a dirty
+# checkout, an active row, and the parent checkout. This workflow only enqueues.
+name: enqueue worktree-remove-merged
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: owner/name
+        required: true
+        type: string
+      pr_number:
+        description: pull request number
+        required: true
+        type: string
+      head_ref:
+        description: PR head ref
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  enqueue:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Join Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Enqueue worktree-remove-merged
+        env:
+          DAGU_BASE_URL: https://dagu-mini.tail9146e0.ts.net
+          DAGU_API_KEY: ${{ secrets.DAGU_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DAGU_API_KEY:-}" ]; then
+            echo "DAGU_API_KEY secret is required" >&2
+            exit 1
+          fi
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            repo="${{ inputs.repo }}"
+            pr_number="${{ inputs.pr_number }}"
+            head_ref="${{ inputs.head_ref }}"
+            echo "dispatch_source=workflow_dispatch"
+          else
+            repo="${{ github.repository }}"
+            pr_number="${{ github.event.pull_request.number }}"
+            head_ref="${{ github.event.pull_request.head.ref }}"
+            echo "dispatch_source=pull_request"
+          fi
+          tmp="$(mktemp)"
+          trap 'rm -f "$tmp"' EXIT
+          url="${DAGU_BASE_URL%/}/api/v1/dags/worktree-remove-merged/enqueue"
+          payload="$(python3 - "$repo" "$pr_number" "$head_ref" <<'PY'
+          import json, sys
+          repo, pr_number, head_ref = sys.argv[1:]
+          print(json.dumps({"params": json.dumps({
+              "repo": repo,
+              "pr_number": str(pr_number),
+              "head_ref": head_ref,
+          })}))
+          PY
+          )"
+          code="$(curl -sS -o "$tmp" -w '%{http_code}' -X POST "$url" \
+            -H "Authorization: Bearer ${DAGU_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            --data "$payload")"
+          python3 - "$code" "$tmp" <<'PY'
+          import json, sys
+          code, path = sys.argv[1], sys.argv[2]
+          raw = open(path, encoding="utf-8").read()
+          print(f"enqueue_http={code}")
+          try:
+              data = json.loads(raw) if raw.strip() else {}
+          except json.JSONDecodeError:
+              print("enqueue_body=not_json")
+              sys.exit(0 if code == "200" else 1)
+          dag_run_id = data.get("dagRunId") or data.get("dag_run_id")
+          if isinstance(data.get("body"), dict):
+              dag_run_id = dag_run_id or data["body"].get("dagRunId")
+          if dag_run_id:
+              print(f"dag_run_id={dag_run_id}")
+          print("removed_count=0")
+          sys.exit(0 if code == "200" else 1)
+          PY
