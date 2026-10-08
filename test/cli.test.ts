@@ -227,12 +227,16 @@ describe("params sugar", () => {
   };
 
   const capture = async (argv: readonly string[]) => {
-    const seen: { url: string; body: string | undefined }[] = [];
+    const seen: { url: string; body: string | undefined; contentType: string | null }[] = [];
     const original = globalThis.fetch;
     process.env.DAGU_API_KEY = "test-key";
     process.env.DAGU_BASE_URL = "http://127.0.0.1:8080";
     globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
-      seen.push({ url: String(input), body: typeof init?.body === "string" ? init.body : undefined });
+      seen.push({
+        url: String(input),
+        body: typeof init?.body === "string" ? init.body : undefined,
+        contentType: new Headers(init?.headers).get("content-type"),
+      });
       return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
     }) as typeof fetch;
     try {
@@ -296,7 +300,34 @@ describe("params sugar", () => {
     expect(sent.envelope.ok).toBe(true);
     expect(JSON.parse(sent.seen[0]?.body ?? "{}").params).toBe("{}");
     expect(omitted.envelope.ok).toBe(true);
-    expect(omitted.seen[0]?.body).toBeUndefined();
+    expect(omitted.seen[0]?.body).toBe("{}");
+    expect(omitted.seen[0]?.contentType).toBe("application/json");
+    expect(JSON.parse(omitted.seen[0]?.body ?? "null")).not.toHaveProperty("params");
+  });
+
+  test("enqueue with no params sends {} so the server keeps defaultParams", async () => {
+    const omitted = await capture(["dag", "enqueue", "transcript-daily-scan"]);
+    const sync = await capture(["dag", "start", "sync", "transcript-daily-scan"]);
+    const override = await capture(["dag", "enqueue", "transcript-daily-scan", "--param", "drain=0"]);
+    const explicit = await capture([
+      "dag",
+      "enqueue",
+      "transcript-daily-scan",
+      "--body",
+      '{"params":"analysis_concurrency=\\"2\\" drain=\\"0\\""}',
+    ]);
+    for (const item of [omitted, sync]) {
+      expect(item.envelope.ok).toBe(true);
+      expect(item.seen[0]?.body).toBe("{}");
+      expect(item.seen[0]?.contentType).toBe("application/json");
+      expect(JSON.parse(item.seen[0]?.body ?? "null")).not.toHaveProperty("params");
+    }
+    expect(omitted.seen[0]?.url).toBe("http://127.0.0.1:8080/api/v1/dags/transcript-daily-scan/enqueue");
+    expect(JSON.parse(override.seen[0]?.body ?? "{}").params).toBe('{"drain":"0"}');
+    expect(JSON.parse(explicit.seen[0]?.body ?? "{}").params).toBe('analysis_concurrency="2" drain="0"');
+    const rename = await capture(["dag", "rename", "demo"]);
+    expect(rename.envelope.ok).toBe(true);
+    expect(rename.seen[0]?.body).toBeUndefined();
   });
 
   test("enqueue, start sync, and spec runs get the same params string", async () => {

@@ -92,7 +92,7 @@ bun run dagu-cli -- dag start --help
 
 ## Commands you will hit next
 
-Path parameters are positional. Filters go in `--query '<json object>'` or `--<name> <value>`, for example `--limit 5` or `--q <text>`. `-q` is not accepted. `run step log` sends `stream=false` unless `--stream` is set. JSON bodies go in `--body` or `--body-file`.
+Path parameters are positional. Filters go in `--query '<json object>'` or `--<name> <value>`, for example `--limit 5` or `--q <text>`. `-q` is not accepted. `run step log` sends `stream=false` unless `--stream` is set. JSON bodies go in `--body` or `--body-file`. `dag enqueue`, `dag start`, and `dag start sync` send `{}` when that body is omitted, so the server keeps the DAG `defaultParams`. An explicit `params` value overrides them.
 
 ```text
 dagu-cli dag params <fileName>
