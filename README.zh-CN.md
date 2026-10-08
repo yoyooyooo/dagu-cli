@@ -10,7 +10,7 @@ export DAGU_API_KEY=<api-key>
 dagu-cli dag list
 ```
 
-需要 Bun 1.3.14 或更新版本。Node 不能运行这个 TypeScript bin。当前版本是 0.1.2。1.0.0 之前，命令名可能变化。
+需要 Bun 1.3.14 或更新版本。Node 不能运行这个 TypeScript bin。当前版本是 0.1.3。1.0.0 之前，命令名可能变化。
 
 ## 解决的问题
 

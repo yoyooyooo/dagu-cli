@@ -4,6 +4,8 @@ This project uses semantic versioning. Before 1.0.0, minor versions may change c
 
 ## Unreleased
 
+## 0.1.3
+
 - `dag enqueue`, `dag start`, and `dag start sync` send `{}` when no `--body`, `--body-file`, `--param`, or `--params-file` is given. Dagu 2.17 panics on a missing required JSON body, so the empty object is what lets the server apply `defaultParams`. An explicit `params` value still overrides them. Other commands do not gain this body.
 - `dag params <fileName>` projects the parameter contract from `GetDAGDetails` (`paramDefs`, or `paramSchema` when definitions are absent). `dag get` is unchanged. Descriptions that start with `Deprecated` are omitted unless `--include-deprecated true`. A parameter with `required: true` is never omitted.
 
