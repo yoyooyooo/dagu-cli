@@ -77,6 +77,13 @@ const PARAMS_OPS = new Set([
   "EnqueueDAGRunFromSpec",
 ]);
 
+// Dagu 2.17 leaves RequestErrorHandlerFunc nil. A required JSON body that is
+// omitted fails json.Decode and the nil handler panics as an empty HTTP 500,
+// so defaultParams never apply. These three catalog runs treat every body
+// property as optional; {} keeps params unset and the server uses defaultParams.
+// Spec runs are not included: their body is the definition, not an optional overlay.
+const OMITTED_JSON_BODY = new Set(["ExecuteDAG", "ExecuteDAGSync", "EnqueueDAGDAGRun"]);
+
 const paramsHelp = "Repeat --param key=value and/or pass --params-file <object.json>. Values are stringified into body.params. Other fields stay on --body.";
 
 const callHint = "Path parameters are positional. Filters are --query '<json>' or --<name> <value>. Do not invent short flags such as -q.";
@@ -488,6 +495,7 @@ export const run = (argv: readonly string[]): Effect.Effect<Envelope, CliError> 
         catch: (error) => asUsage(error),
       });
     }
+    if (body === undefined && OMITTED_JSON_BODY.has(command.operationId)) body = {};
     const headers: Record<string, string> = {};
     if (command.operationId === "TriggerWebhook") {
       if (!invocation.webhookToken) return yield* Effect.fail(usage("webhook trigger requires --token."));
