@@ -10,7 +10,7 @@ export DAGU_API_KEY=<api-key>
 dagu-cli dag list
 ```
 
-Bun 1.3.14 or newer is required. Node cannot run the TypeScript bin. The current version is 0.1.2. Before 1.0.0, command names may change.
+Bun 1.3.14 or newer is required. Node cannot run the TypeScript bin. The current version is 0.1.3. Before 1.0.0, command names may change.
 
 ## The problem
 
