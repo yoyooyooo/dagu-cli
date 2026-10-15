@@ -13,8 +13,8 @@ const fixture = async () => {
   const file = join(home, ".config/dagu-cli/contexts.json");
   const legacy = join(home, "automation.json");
   const env = { HOME: home, DAGU_CONFIG_FILE: legacy };
-  const invoke = async (args: string[], extra: Record<string, string> = {}) => {
-    const proc = Bun.spawn([process.execPath, cli, ...args], { env: { ...env, ...extra }, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+  const invoke = async (args: string[], extra: Record<string, string> = {}, preload = false) => {
+    const proc = Bun.spawn([process.execPath, ...(preload ? ["--preload", new URL("./fixtures/context-write-gate.ts", import.meta.url).pathname] : []), cli, ...args], { env: { ...env, ...extra }, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
     const [stdout, stderr, code] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
     // Never include credential values in assertion diagnostics, even on failure.
     expect(stderr.length === 0).toBe(true);
@@ -39,7 +39,101 @@ const fixture = async () => {
   return { home, file, legacy, invoke, store, keyFile, add };
 };
 
+const waitForFile = async (file: string): Promise<void> => {
+  const deadline = performance.now() + 5000;
+  while (!(await Bun.file(file).exists())) {
+    if (performance.now() >= deadline) throw new Error("Timed out waiting for concurrent CLI progress.");
+    await Bun.sleep(5);
+  }
+};
+
+// Hold one CLI after it has read its snapshot. Without a transaction lock, the
+// second CLI commits first and its successful change is overwritten on release.
+const raceWrites = async (f: Awaited<ReturnType<typeof fixture>>, first: string[], second: string[], gateFile: string) => {
+  const ready = join(f.home, "ready");
+  const release = join(f.home, "release");
+  const progress = join(f.home, "progress");
+  const paused = f.invoke(first, { CONTEXT_TEST_GATE_FILE: gateFile, CONTEXT_TEST_READY: ready, CONTEXT_TEST_RELEASE: release }, true);
+  let concurrent: ReturnType<typeof f.invoke> | undefined;
+  try {
+    await waitForFile(ready);
+    concurrent = f.invoke(second, { CONTEXT_TEST_LOCK_PROGRESS: progress }, true).then(async (result) => {
+      await writeFile(progress, "");
+      return result;
+    });
+    // The second command either finishes (old code) or encounters the held lock.
+    await waitForFile(progress);
+  } finally {
+    await writeFile(release, "");
+    await Promise.allSettled([paused, ...(concurrent ? [concurrent] : [])]);
+  }
+  return Promise.all([paused, concurrent!]);
+};
+
 describe("connection contexts through the CLI entry point", () => {
+  test("concurrent add/add preserves both successful additions", async () => {
+    const f = await fixture();
+    const keyFile = await f.keyFile();
+    const add = (name: string) => ["context", "add", name, "--base-url", "https://dagu.example", "--api-key-file", keyFile];
+    const results = await raceWrites(f, add("alpha"), add("beta"), keyFile);
+    expect(results.map((result) => result.code)).toEqual([0, 0]);
+    expect((await f.invoke(["context", "ls"])).envelope.result).toEqual({ contexts: ["alpha", "beta"], currentContext: null });
+    expect((await lstat(f.file)).mode & 0o777).toBe(0o600);
+  });
+
+  test("concurrent add/use preserves the successful current-context switch", async () => {
+    const f = await fixture();
+    await f.add("old", "https://old.example");
+    await f.add("new", "https://new.example");
+    expect((await f.invoke(["context", "use", "old"])).code).toBe(0);
+    const keyFile = await f.keyFile();
+    const results = await raceWrites(f,
+      ["context", "add", "alpha", "--base-url", "https://dagu.example", "--api-key-file", keyFile],
+      ["context", "use", "new"], keyFile);
+    expect(results.map((result) => result.code)).toEqual([0, 0]);
+    expect((await f.invoke(["context", "ls"])).envelope.result).toEqual({ contexts: ["alpha", "new", "old"], currentContext: "new" });
+  });
+
+  test("concurrent use/rm validates against the locked state and cannot select a removed context", async () => {
+    const f = await fixture();
+    await f.add("target", "https://dagu.example");
+    const results = await raceWrites(f, ["context", "use", "target"], ["context", "rm", "target"], f.file);
+    expect(results.map((result) => result.code)).toEqual([0, 2]);
+    expect((await f.invoke(["context", "ls"])).envelope.result).toEqual({ contexts: ["target"], currentContext: "target" });
+  });
+
+  test("held locks time out clearly without modifying config or releasing another writer's lock", async () => {
+    const f = await fixture();
+    await f.add("target", "https://dagu.example");
+    const before = await readFile(f.file, "utf8");
+    const lock = `${f.file}.lock`;
+    await writeFile(lock, "held by another writer", { mode: 0o600 });
+    // Read-only commands remain available while a writer holds the lock.
+    expect((await f.invoke(["context", "ls"])).code).toBe(0);
+    expect((await f.invoke(["context", "show", "target"])).code).toBe(0);
+    const started = performance.now();
+    const result = await f.invoke(["context", "use", "target"]);
+    expect(result.code).toBe(2);
+    expect(result.envelope.error?.code).toBe("CONFIG");
+    expect(result.envelope.error?.message).toContain("Timed out after 5 seconds");
+    expect(result.envelope.error?.message).toContain("contexts.json.lock");
+    expect(performance.now() - started).toBeGreaterThanOrEqual(5000);
+    expect(await readFile(f.file, "utf8")).toBe(before);
+    expect(await readFile(lock, "utf8")).toBe("held by another writer");
+  }, 15000);
+
+  test("failed transactions release the lock for subsequent writers", async () => {
+    const f = await fixture();
+    await f.add("target", "https://dagu.example");
+    expect((await f.invoke(["context", "use", "missing"])).code).toBe(2);
+    expect(await Bun.file(`${f.file}.lock`).exists()).toBe(false);
+    expect((await f.invoke(["context", "use", "target"])).code).toBe(0);
+    expect(await Bun.file(`${f.file}.lock`).exists()).toBe(false);
+    await f.store(f.file, { contexts: [] });
+    expect((await f.invoke(["context", "use", "-"])).code).toBe(2);
+    expect(await Bun.file(`${f.file}.lock`).exists()).toBe(false);
+  });
+
   test("ls/add/show/use/rm use one 0600 file, store references only, and never touch key files", async () => {
     const f = await fixture();
     const key = secret();

@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import { randomUUID } from "node:crypto";
-import { lstat, mkdir, open, rename } from "node:fs/promises";
+import { lstat, mkdir, open, rename, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { CliError, configError, usage } from "./errors.ts";
-import { CONFIG_LIMIT, nonEmpty, parseConfigObject, readPrivateFile, validateBaseUrl } from "./private-config.ts";
+import { CONFIG_LIMIT, isNodeError, nonEmpty, parseConfigObject, readPrivateFile, validateBaseUrl } from "./private-config.ts";
 
 export type Context = {
   readonly baseUrl: string;
@@ -71,15 +71,45 @@ export const contextConnection = async (override?: string): Promise<{ baseUrl: s
   return { baseUrl: context.baseUrl, apiKey };
 };
 
-const saveContexts = async (stored: ContextsFile): Promise<void> => {
-  const text = `${JSON.stringify(stored, null, 2)}\n`;
-  if (Buffer.byteLength(text) > CONFIG_LIMIT) throw configError("Dagu config file is too large.");
+const contextDirectory = async (): Promise<string> => {
   const directory = dirname(contextsPath());
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const info = await lstat(directory);
   if (!info.isDirectory() || info.isSymbolicLink() || (process.getuid && info.uid !== process.getuid()) || (info.mode & 0o022) !== 0) {
     throw configError("Context directory must be owned by the current user, not a symlink or writable by group/other.");
   }
+  return directory;
+};
+
+/** Serialize the entire transaction, including the snapshot read and validation. */
+const modifyContexts = async <A>(operation: (stored: ContextsFile) => Promise<A>): Promise<A> => {
+  const directory = await contextDirectory();
+  const lockPath = join(directory, "contexts.json.lock");
+  const deadline = performance.now() + 5000;
+  let lock;
+  while (!lock) {
+    try {
+      lock = await open(lockPath, "wx", 0o600);
+    } catch (cause) {
+      if (!isNodeError(cause, "EEXIST")) throw cause;
+      if (performance.now() >= deadline) {
+        throw configError("Timed out after 5 seconds waiting for the context configuration lock. Retry when other context writers finish; a crashed writer may leave contexts.json.lock behind.");
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+  }
+  try {
+    return await operation(await readContexts());
+  } finally {
+    try { await lock.close(); }
+    finally { await unlink(lockPath); }
+  }
+};
+
+const saveContexts = async (stored: ContextsFile): Promise<void> => {
+  const text = `${JSON.stringify(stored, null, 2)}\n`;
+  if (Buffer.byteLength(text) > CONFIG_LIMIT) throw configError("Dagu config file is too large.");
+  const directory = await contextDirectory();
   await readPrivateFile(contextsPath());
   const temp = join(directory, `.contexts-${randomUUID()}.tmp`);
   const handle = await open(temp, "wx", 0o600);
@@ -113,50 +143,57 @@ export const manageContexts = (args: readonly string[], override?: string): Effe
     try: async () => {
       const [action, ...rest] = args;
       if (!action) return contextHelp(["context"]);
-      const stored = await readContexts();
       if (action === "ls" && rest.length === 0) {
+        const stored = await readContexts();
         return { contexts: Object.keys(stored.contexts).sort(), currentContext: stored.currentContext };
       }
       if (action === "show" && rest.length <= 1) {
+        const stored = await readContexts();
         const name = rest[0] ?? selectedName(stored, override);
         if (!name) throw configError("No context selected. Pass a name or run context use.");
         const context = lookup(stored, name);
         return { name, baseUrl: context.baseUrl, apiKey: "[redacted]", credentialSource: "file" };
       }
       if (action === "add") {
-        const name = rest[0];
-        if (!name) throw usage("Context name is required. Run: dagu-cli context add --help");
-        checkName(name);
-        if (Object.hasOwn(stored.contexts, name)) throw configError("Context already exists; remove it before adding a replacement.");
-        const options: Record<string, string> = {};
-        for (let index = 1; index < rest.length; index++) {
-          const flag = rest[index]!;
-          if (!["--base-url", "--api-key-file"].includes(flag) || Object.hasOwn(options, flag)) {
-            throw usage("Expected --base-url and --api-key-file, each exactly once. Literal keys are not accepted.");
+        return modifyContexts(async (stored) => {
+          const name = rest[0];
+          if (!name) throw usage("Context name is required. Run: dagu-cli context add --help");
+          checkName(name);
+          if (Object.hasOwn(stored.contexts, name)) throw configError("Context already exists; remove it before adding a replacement.");
+          const options: Record<string, string> = {};
+          for (let index = 1; index < rest.length; index++) {
+            const flag = rest[index]!;
+            if (!["--base-url", "--api-key-file"].includes(flag) || Object.hasOwn(options, flag)) {
+              throw usage("Expected --base-url and --api-key-file, each exactly once. Literal keys are not accepted.");
+            }
+            const value = rest[++index];
+            if (!value || value.startsWith("--")) throw usage("Context option requires a value.");
+            options[flag] = value;
           }
-          const value = rest[++index];
-          if (!value || value.startsWith("--")) throw usage("Context option requires a value.");
-          options[flag] = value;
-        }
-        const context = parseContext({ baseUrl: options["--base-url"], apiKeyFile: options["--api-key-file"] });
-        const absolute = { ...context, apiKeyFile: resolve(context.apiKeyFile) };
-        if (!nonEmpty(await readPrivateFile(absolute.apiKeyFile))) throw configError("Context API key file is missing or empty.");
-        await saveContexts({ ...stored, contexts: { ...stored.contexts, [name]: absolute } });
-        return { name, added: true };
+          const context = parseContext({ baseUrl: options["--base-url"], apiKeyFile: options["--api-key-file"] });
+          const absolute = { ...context, apiKeyFile: resolve(context.apiKeyFile) };
+          if (!nonEmpty(await readPrivateFile(absolute.apiKeyFile))) throw configError("Context API key file is missing or empty.");
+          await saveContexts({ ...stored, contexts: { ...stored.contexts, [name]: absolute } });
+          return { name, added: true };
+        });
       }
       if (action === "use" && rest.length === 1) {
-        const name = rest[0]!;
-        if (name !== "-") lookup(stored, name);
-        await saveContexts({ ...stored, currentContext: name === "-" ? null : name });
-        return { currentContext: name === "-" ? null : name };
+        return modifyContexts(async (stored) => {
+          const name = rest[0]!;
+          if (name !== "-") lookup(stored, name);
+          await saveContexts({ ...stored, currentContext: name === "-" ? null : name });
+          return { currentContext: name === "-" ? null : name };
+        });
       }
       if (action === "rm" && rest.length === 1) {
-        const name = rest[0]!;
-        lookup(stored, name);
-        if (stored.currentContext === name) throw configError("Cannot remove the current context; use another context or use - first.");
-        const contexts = Object.fromEntries(Object.entries(stored.contexts).filter(([key]) => key !== name));
-        await saveContexts({ ...stored, contexts });
-        return { name, removed: true };
+        return modifyContexts(async (stored) => {
+          const name = rest[0]!;
+          lookup(stored, name);
+          if (stored.currentContext === name) throw configError("Cannot remove the current context; use another context or use - first.");
+          const contexts = Object.fromEntries(Object.entries(stored.contexts).filter(([key]) => key !== name));
+          await saveContexts({ ...stored, contexts });
+          return { name, removed: true };
+        });
       }
       throw usage("Usage: dagu-cli context ls|show|add|use|rm. Run: dagu-cli context --help");
     },
