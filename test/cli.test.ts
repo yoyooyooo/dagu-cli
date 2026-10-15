@@ -13,6 +13,8 @@ import { run, toEnvelope, type CommandSpec } from "../src/program.ts";
 // Keep this file off the operator credential file. Config cases set their own path.
 const missingConfigFile = join(tmpdir(), `dagu-cli-no-such-config-${process.pid}.json`);
 process.env.DAGU_CONFIG_FILE = missingConfigFile;
+process.env.HOME = join(tmpdir(), `dagu-cli-isolated-home-${process.pid}`);
+delete process.env.DAGU_CONTEXT;
 
 const commands = JSON.parse(readFileSync(new URL("../spec/commands.json", import.meta.url), "utf8")) as CommandSpec[];
 const execute = (argv: readonly string[]) =>
@@ -148,7 +150,7 @@ describe("config", () => {
     process.env.DAGU_CONFIG_FILE = missingConfigFile;
   };
 
-  test("private automation.json beats env, and --base-url beats the file", async () => {
+  test("env beats private automation.json, and --base-url beats env", async () => {
     const dir = await mkdtemp(join(tmpdir(), "dagu-cli-config-"));
     const file = join(dir, "automation.json");
     await writeFile(file, JSON.stringify({ key: "file-key", baseUrl: "https://file.example" }));
@@ -158,11 +160,17 @@ describe("config", () => {
     process.env.DAGU_BASE_URL = "https://env.example";
     delete process.env.DAGU_API_TOKEN;
     try {
-      const fromFile = await Effect.runPromise(loadConfig({}));
-      expect(fromFile).toEqual({ baseUrl: "https://file.example/api/v1", apiKey: "file-key" });
+      const fromEnv = await Effect.runPromise(loadConfig({}));
+      expect(fromEnv.baseUrl).toBe("https://env.example/api/v1");
+      expect(fromEnv.apiKey === "env-key").toBe(true);
       const fromFlag = await Effect.runPromise(loadConfig({ baseUrl: "https://flag.example" }));
       expect(fromFlag.baseUrl).toBe("https://flag.example/api/v1");
-      expect(fromFlag.apiKey).toBe("file-key");
+      expect(fromFlag.apiKey === "env-key").toBe(true);
+      delete process.env.DAGU_API_KEY;
+      delete process.env.DAGU_BASE_URL;
+      const fromFile = await Effect.runPromise(loadConfig({}));
+      expect(fromFile.baseUrl).toBe("https://file.example/api/v1");
+      expect(fromFile.apiKey === "file-key").toBe(true);
     } finally {
       restore();
     }

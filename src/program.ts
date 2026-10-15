@@ -8,6 +8,7 @@ import { CliError, usage } from "./errors.ts";
 import { callOperation } from "./http.ts";
 import { findOperation } from "./openapi.ts";
 import { projectDagParams } from "./params.ts";
+import { contextHelp, manageContexts } from "./contexts.ts";
 
 const specDir = join(dirname(fileURLToPath(import.meta.url)), "../spec");
 const commandPath = join(specDir, "commands.json");
@@ -60,6 +61,7 @@ type Invocation = {
   readonly webhookToken?: string;
   readonly signature?: string;
   readonly profile?: string;
+  readonly context?: string;
 };
 
 const STREAM_DEFAULT = new Set([
@@ -121,6 +123,7 @@ const derivedHelp = (command: DerivedSpec): Envelope => ({
 });
 
 const help = (tokens: readonly string[]): Envelope => {
+  if (tokens[0] === "context") return { ok: true, command: "help", result: contextHelp(tokens) };
   const matched = longestCommand(tokens);
   const derived = longestDerived(tokens);
   if (derived && derived.argv.length === tokens.length && (!matched || derived.argv.length >= matched.argv.length)) return derivedHelp(derived);
@@ -157,11 +160,24 @@ const help = (tokens: readonly string[]): Envelope => {
       ? { command: name, usage: usageLine(leaf), summary: leaf.summary }
       : { command: name, usage: `dagu-cli ${[...tokens, name].join(" ")}`, summary: `${bucket.length} commands` };
   });
-  if (tokens.length === 0) entries.push({ command: "skills", usage: "dagu-cli skills list", summary: "List or load one layer of the command tree" });
+  if (tokens.length === 0) {
+    entries.push({ command: "skills", usage: "dagu-cli skills list", summary: "List or load one layer of the command tree" });
+    entries.push({ command: "context", usage: "dagu-cli context --help", summary: "Manage local connection targets; profile is a Dagu runtime profile" });
+  }
   return {
     ok: true,
     command: "help",
-    result: { group: tokens.length ? tokens.join(" ") : "dagu-cli", ...(tokens.length === 0 ? { call: callHint } : { call: shortCall }), commands: entries },
+    result: {
+      group: tokens.length ? tokens.join(" ") : "dagu-cli",
+      ...(tokens.length === 0 ? {
+        call: callHint,
+        globalFlags: {
+          "--context <name>, -c <name>": "Connection: flag > DAGU_CONTEXT > current context > env > legacy config",
+          "--base-url <url>": "Override the connection URL, retaining its key",
+        },
+      } : { call: shortCall }),
+      commands: entries,
+    },
   };
 };
 
@@ -407,7 +423,7 @@ const runDerived = (command: DerivedSpec, invocation: Invocation): Effect.Effect
       const value = args[index];
       if (value) path[name] = value;
     });
-    const config = yield* loadConfig({ baseUrl: invocation.baseUrl });
+    const config = yield* loadConfig({ baseUrl: invocation.baseUrl, context: invocation.context });
     const operation = yield* findOperation(command.operationId);
     const response = yield* callOperation({
       baseUrl: config.baseUrl,
@@ -442,8 +458,33 @@ const runDerived = (command: DerivedSpec, invocation: Invocation): Effect.Effect
     return { ok: true, command: commandName, status: response.status, result: projected.view };
   });
 
-export const run = (argv: readonly string[]): Effect.Effect<Envelope, CliError> =>
+const extractContext = (argv: readonly string[]): Effect.Effect<{ argv: readonly string[]; context?: string }, CliError> => {
+  const rest: string[] = [];
+  let context: string | undefined;
+  for (let index = 0; index < argv.length; index++) {
+    const token = argv[index]!;
+    if (token === "--context" || token === "-c" || token.startsWith("--context=")) {
+      if (context !== undefined) return Effect.fail(usage("--context / -c can only be passed once."));
+      const value = token.startsWith("--context=") ? token.slice("--context=".length) : argv[++index];
+      if (!value || value.startsWith("-")) return Effect.fail(usage("--context / -c needs a connection context name."));
+      context = value;
+    } else {
+      rest.push(token);
+      // Existing long flags take a value. Preserve values such as webhook
+      // --profile -c instead of mistaking them for the new global alias.
+      const value = argv[index + 1];
+      if (token.startsWith("--") && token !== "--help" && !token.includes("=") && value !== undefined && !value.startsWith("--")) {
+        rest.push(value);
+        index++;
+      }
+    }
+  }
+  return Effect.succeed({ argv: rest, context });
+};
+
+export const run = (input: readonly string[]): Effect.Effect<Envelope, CliError> =>
   Effect.gen(function* () {
+    const { argv, context } = yield* extractContext(input);
     if (argv.length === 0 || argv.includes("--help") || argv.includes("-h") || argv[0] === "help") {
       return help(argv.filter((token) => token !== "--help" && token !== "-h" && token !== "help"));
     }
@@ -453,7 +494,11 @@ export const run = (argv: readonly string[]): Effect.Effect<Envelope, CliError> 
       if (action !== "get" || !argv[2]) return yield* Effect.fail(usage("Usage: dagu-cli skills list | dagu-cli skills get <name>"));
       return skillText(argv[2]);
     }
-    const invocation = yield* parseInvocation(argv);
+    if (argv[0] === "context") {
+      const result = yield* manageContexts(argv.slice(1), context);
+      return { ok: true, command: `context ${argv[1] ?? "help"}`, result };
+    }
+    const invocation = { ...yield* parseInvocation(argv), context };
     const derived = longestDerived(invocation.positionals);
     const command = longestCommand(invocation.positionals);
     if (derived && (!command || derived.argv.length >= command.argv.length)) return yield* runDerived(derived, invocation);
@@ -504,7 +549,7 @@ export const run = (argv: readonly string[]): Effect.Effect<Envelope, CliError> 
       if (invocation.profile) headers["x-dagu-profile"] = invocation.profile;
     }
     const webhook = command.operationId === "TriggerWebhook";
-    const config = yield* loadConfig({ baseUrl: invocation.baseUrl, requireApiKey: !webhook });
+    const config = yield* loadConfig({ baseUrl: invocation.baseUrl, context: invocation.context, requireApiKey: !webhook });
     const operation = yield* findOperation(command.operationId);
     const response = yield* callOperation({
       baseUrl: config.baseUrl,

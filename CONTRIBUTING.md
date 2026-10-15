@@ -9,6 +9,8 @@ bun run check
 
 `bun run check` is the gate: `tsc --noEmit`, then `bun test`. Tests must not call a live Dagu server or read a real API key.
 
+Local connection management lives in `src/contexts.ts`; it is separate from the generated Dagu runtime `profile` commands and webhook `--profile`. Context tests spawn the actual CLI with isolated HOME/config and synthetic credentials against a local mock HTTP server. Keep credential comparisons boolean so failed assertions cannot print keys. See [README.md](./README.md) for schema and precedence.
+
 The command tree lives in `scripts/command-map.py`. After replacing `spec/openapi.json`, update the pairs in that script and run:
 
 ```bash

@@ -10,17 +10,37 @@ This file is the entry, not the command reference. The installed CLI is the sour
 ```text
 DAGU_BASE_URL   default http://127.0.0.1:8080
 DAGU_API_KEY    bearer token; DAGU_API_TOKEN is accepted
-config file     ~/.config/dagu/automation.json (DAGU_CONFIG_FILE overrides the path)
+DAGU_CONTEXT   optional connection context selector
+contexts file  ~/.config/dagu-cli/contexts.json (mode 0600)
+legacy config  ~/.config/dagu/automation.json (DAGU_CONFIG_FILE overrides)
 ```
 
 The base URL is the server origin. `/api/v1` is appended unless it is already present. Do not append `/mcp`. Do not put the key in the URL, flags, or command output.
 
-The config file is optional and is the same owner-private mode 600 file the automation catalog client uses (`key`, optional `baseUrl`). It is not a second secret channel. Priority is `--base-url`, then the file, then the environment, then the built-in default. A missing file is ignored. A symlink or a file readable by group/other is an error. The CLI does not write the file.
+**Context = connection target; profile = Dagu runtime profile.** The 18 `profile ...` API commands and webhook `--profile` (`x-dagu-profile` header) keep their existing behavior. `--profile` never selects a context.
+
+Connection precedence: `--base-url` > global `--context <name>` / `-c <name>` > non-empty `DAGU_CONTEXT` > stored `currentContext` > `DAGU_BASE_URL` / `DAGU_API_KEY` (`DAGU_API_TOKEN` alias) > legacy automation config. Flags work before or after the command; `--context=<name>` also works. `--base-url` changes only the URL, retaining the selected key: use only when that credential belongs at the overridden origin. A selected context is self-contained; missing/invalid contexts or key files fail without borrowing credentials.
+
+Schema: `{"currentContext":"mini","contexts":{"mini":{"baseUrl":"https://dagu.example","apiKeyFile":"/absolute/path/to/key"}}}`. `currentContext` can be omitted or null. Contexts store file references only; inline keys are rejected. Relative references in hand-written config resolve against `contexts.json`; `add` stores absolute paths. Config/key files must be owner-private regular files (mode 600), not symlinks.
+
+```text
+dagu-cli context ls
+dagu-cli context show [name]
+dagu-cli context add <name> --base-url <url> --api-key-file <path>
+dagu-cli context use <name|->
+dagu-cli context rm <name>
+dagu-cli -c mini dag list
+```
+
+`show` displays stored settings with keys redacted, never environment connection values or resolved key contents. `add/use/rm` atomically write `contexts.json` with mode 0600. `add` refuses duplicates; replace a connection by clearing/switching the current context, removing it, then adding it again. `rm` refuses the current context and never touches key files. Management is local; no server request is made. `use -` clears the persisted selection but does not override `DAGU_CONTEXT`.
+
+Without a selected context, missing URL/key fields fall back from env to the optional legacy automation config (`baseUrl`, non-empty `key` or `apiKey`), then to the loopback URL default. **Migration:** env now precedes that legacy file. The CLI never rewrites it. See the repository README for the Multica comparison and complete precedence.
 
 ## Disclosure
 
 ```text
 dagu-cli --help
+dagu-cli context --help
 dagu-cli <noun> --help
 dagu-cli skills list
 dagu-cli skills get core

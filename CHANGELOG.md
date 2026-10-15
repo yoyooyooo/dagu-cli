@@ -4,6 +4,11 @@ This project uses semantic versioning. Before 1.0.0, minor versions may change c
 
 ## Unreleased
 
+- Add connection contexts: `context ls/show/add/use/rm`, global `--context <name>` (`-c`), and `DAGU_CONTEXT`. Store the current context and named `baseUrl` / `apiKeyFile` references in `~/.config/dagu-cli/contexts.json` (mode 0600). Inline keys are rejected; `show` redacts credentials.
+- Connection precedence: `--base-url` > context flag > `DAGU_CONTEXT` > current context > connection env > legacy automation config. **Migration:** env now overrides the legacy file. Named contexts never borrow credentials from env/legacy on failure. The legacy file is never rewritten.
+- Preserve all 18 Dagu runtime `profile` commands and webhook `--profile` / `x-dagu-profile` behavior. `--profile` never selects a connection.
+- Redact active API keys, webhook tokens and signatures reflected in server responses; transport errors no longer echo exception details.
+
 ## 0.1.3
 
 - `dag enqueue`, `dag start`, and `dag start sync` send `{}` when no `--body`, `--body-file`, `--param`, or `--params-file` is given. Dagu 2.17 panics on a missing required JSON body, so the empty object is what lets the server apply `defaultParams`. An explicit `params` value still overrides them. Other commands do not gain this body.
