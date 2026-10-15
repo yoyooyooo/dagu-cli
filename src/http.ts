@@ -85,12 +85,20 @@ export const callOperation = (input: CallInput): Effect.Effect<{ readonly status
       } else {
         body = null;
       }
-      return { status: response.status, body };
+      const secrets = [input.apiKey, input.headers.authorization?.replace(/^Bearer /, ""), input.headers["x-dagu-signature"]]
+        .filter((value): value is string => Boolean(value));
+      const redact = (value: unknown): unknown => {
+        if (typeof value === "string") return secrets.reduce((text, secret) => text.replaceAll(secret, "[redacted]"), value);
+        if (Array.isArray(value)) return value.map(redact);
+        if (value !== null && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [redact(key), redact(item)]));
+        return value;
+      };
+      return { status: response.status, body: redact(body) };
     },
     catch: (cause) =>
       new CliError({
         code: cause instanceof CliError ? cause.code : "TRANSPORT",
-        message: cause instanceof Error ? cause.message.replaceAll(input.apiKey ?? "\0", "[redacted]") : "Request failed.",
+        message: cause instanceof CliError ? cause.message : "Request failed. Check server connectivity and credentials.",
         retryable: !(cause instanceof CliError),
       }),
   });

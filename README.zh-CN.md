@@ -77,7 +77,51 @@ bun run dagu-cli -- dag list
 
 `DAGU_API_TOKEN` 是 `DAGU_API_KEY` 的别名。基址如果已经以 `/api/v1` 结尾，不会再追加一次。不要在基址上加 `/mcp`，也不要把 key 放进 URL。
 
-可选配置文件是 `~/.config/dagu/automation.json`（用 `DAGU_CONFIG_FILE` 改路径）。这和 automation catalog 客户端用的是同一个属主私有、mode 600 的文件，不是另一套凭据。`key` 是 bearer（没有 `key` 时才接受 `apiKey`）。可选 `baseUrl` 是 REST origin。优先级是 `--base-url`，然后文件，然后 `DAGU_BASE_URL` / `DAGU_API_KEY`，最后才是 `http://127.0.0.1:8080`。文件不存在时行为不变。CLI 不写这个文件。
+用 **context** 管理 `local`、`box`、`mini`、`pro`、`imile-win` 等连接目标。**profile** 表示 Dagu runtime profile：现有 18 条 `dagu-cli profile ...` 命令，以及 webhook 的 `--profile` / `x-dagu-profile` 行为保持不变。profile 不参与连接选择。
+
+```bash
+# 密钥文件须已存在，只含 key，权限为 600。
+dagu-cli context add mini --base-url https://dagu.example --api-key-file /absolute/path/to/key
+dagu-cli context use mini
+dagu-cli dag list
+dagu-cli --context box dag list
+dagu-cli -c mini dag params demo
+dagu-cli context ls
+dagu-cli context show mini
+dagu-cli context use -       # 清除当前 context
+dagu-cli context rm mini
+```
+
+`context show [name]` 展示指定名称或当前选中的 context，`apiKey` 显示为 `[redacted]`。它只展示已保存配置，不读取密钥文件，也不展示环境变量中的连接值。`ls` 列出已保存名称和持久化的当前 context。`add` 拒绝重名；替换连接时，先切换或清除当前 context，再移除旧项并重新添加。`rm` 拒绝移除当前 context，且只移除配置项，不操作密钥文件。管理命令不访问服务器。
+
+唯一配置文件是 `~/.config/dagu-cli/contexts.json`，以 mode 0600 原子写入。结构：
+
+```json
+{
+  "currentContext": "mini",
+  "contexts": {
+    "mini": {
+      "baseUrl": "https://dagu.example",
+      "apiKeyFile": "/absolute/path/to/key"
+    }
+  }
+}
+```
+
+`currentContext` 可以省略或为 `null`。每个 context 必须提供 REST `baseUrl` 和 `apiKeyFile`；禁止内联 key。`add` 保存绝对路径；手写配置中的相对路径按 `contexts.json` 所在目录解析。配置与密钥文件必须是当前属主的普通文件，不允许 group/other 权限（mode 600），不能是符号链接。名称为 1–64 个字母、数字、下划线或连字符，以字母或数字开头。
+
+连接优先级：
+
+1. `--base-url <url>` 覆盖下面来源的 URL，沿用该连接的 key。
+2. 全局 `--context <name>` / `-c <name>` 选择命名连接。可放在命令前后，也接受 `--context=<name>`。
+3. 非空 `DAGU_CONTEXT` 选择命名连接。
+4. 持久化的 `currentContext` 选择命名连接。
+5. 未选中 context 时，由 `DAGU_BASE_URL` 和 `DAGU_API_KEY`（或 `DAGU_API_TOKEN`）提供连接字段。
+6. 缺失字段回退到可选的 `~/.config/dagu/automation.json`（`DAGU_CONFIG_FILE` 覆盖这个旧文件路径）：读取 `baseUrl` 和非空 `key`（否则读 `apiKey`）。URL 最后默认 `http://127.0.0.1:8080`；除 webhook trigger 外，API 调用必须有 key。
+
+**迁移：**环境变量中的连接值现在优先于旧 automation 文件。CLI 永不改写旧文件。选中的 context 完整提供 URL 和 key；名称不存在、配置非法或密钥文件缺失／不安全时直接报错，不借用环境变量或旧文件中的凭据。`--base-url` 会保留选中连接的 key，因此只应在该凭据确实属于覆盖后的目标时使用。`context use -` 清除持久选择，但不覆盖 `DAGU_CONTEXT`。
+
+Multica 对照核对了已安装 CLI、[GitHub main 配置实现](https://github.com/yoyooyooo/multica/blob/43b0571f992567a919c7f1f699ff160922594b94/server/internal/cli/config.go)和[选择逻辑](https://github.com/yoyooyooo/multica/blob/43b0571f992567a919c7f1f699ff160922594b94/server/cmd/multica/cmd_agent.go)。Multica 提供全局 profile 选择、独立 `profiles/<name>/config.json` 文件和 `config show/set`；该版本没有顶层 profile 管理组，也没有环境变量／当前 profile 选择链。dagu-cli 将其命名目标与显式选择体验适配成 `context`，使用单文件和上述优先级，保留 Dagu 既有 runtime profile 术语。
 
 成功时响应包含 `"ok": true` 和 `status` 200。DAG 数组在 `result.body`。具体字段取决于你的 Dagu 版本。
 
@@ -115,7 +159,7 @@ dagu-cli wiki attachment put --body-file <path> --query '<json>'
 
 ## 安全与隐私
 
-CLI 只把 API key 发给你设置的基址。`--body-file` 只读取你传入的本地路径。当 `~/.config/dagu/automation.json` 是属主私有的普通文件时，CLI 会读取它；CLI 不写配置文件，也不把数据发到其他地方。错误文本会把 API key 替换成 `[redacted]`，并且不会打印文件内容。
+CLI 只把 API key 发给你设置的基址。`--body-file` 只读取你传入的本地路径。CLI 读取 context 配置和选中的私有密钥文件，或回退到可选的旧 `~/.config/dagu/automation.json`。只有 `context add/use/rm` 写入连接配置；CLI 不把数据发到其他地方。`context show` 对凭据脱敏；服务器响应中的当前 API key、webhook token 和签名也会脱敏。传输错误使用固定文本，不回显 URL、环境变量值或凭据。
 
 没有二次确认。HTTP 方法是 POST、PUT、PATCH 或 DELETE 的命令会修改服务器。只在确实需要这个效果时运行。
 

@@ -2,18 +2,22 @@
 
 ## Supported versions
 
-Security fixes apply to the current `main` branch and to the latest `0.1.x` source tag once tags exist. Older snapshots are not supported. No package has been published to a registry.
+Security fixes apply to the current `main` branch and latest `0.1.x` release. Older snapshots are not supported. The package is published to npm by the Publish tag workflow, which then starts global-pkg-upgrade.
 
 ## Reporting
 
-This repository does not yet have a public remote or a published private contact. Do not open a public issue, pull request, or chat message that contains vulnerability details, tokens, or server data.
+This repository does not yet have a published private vulnerability contact. Do not open a public issue, pull request, or chat message that contains vulnerability details, tokens, or server data.
 
 Until a private contact is published, keep the report off public channels. The missing contact is an open gap, not an invitation to post the report publicly.
 
 ## What this CLI does
 
-The CLI reads `DAGU_API_KEY` or `DAGU_API_TOKEN` from the environment, unless `~/.config/dagu/automation.json` (or `DAGU_CONFIG_FILE`) contains `key`. That file is the same private credential file the automation catalog client uses. Optional `baseUrl` in the file overrides `DAGU_BASE_URL`. `--base-url` still wins. The default origin is `http://127.0.0.1:8080`. The file must be a regular file owned by the current user with mode 600; a symlink or a wider mode is refused and its contents are not logged. `webhook trigger` sends `--token` instead, plus `--signature` and `--profile` when you pass them.
+Contexts are connection targets. Dagu runtime profiles remain under `profile ...` and webhook `--profile` (`x-dagu-profile`); those do not select connections.
 
-It does not write a config file, does not phone home, and does not log the key. Error text replaces the API key with `[redacted]`. `--body-file` reads the path you pass. Every other request goes only to the Dagu server you configured.
+Connection precedence is `--base-url` > `--context` / `-c` > `DAGU_CONTEXT` > current context > `DAGU_BASE_URL` / `DAGU_API_KEY` (`DAGU_API_TOKEN` alias) > the optional legacy `~/.config/dagu/automation.json` (`DAGU_CONFIG_FILE` overrides). Environment values now precede the legacy file, which is never rewritten. `--base-url` retains the selected key: callers choose the origin receiving that credential. Selected contexts fail on unknown names or invalid/missing key files rather than borrowing another connection's key.
+
+`~/.config/dagu-cli/contexts.json` stores `currentContext` and a `contexts` map of `baseUrl` / `apiKeyFile` references, never inline keys. Relative references resolve against its directory. Configs and referenced key files must be regular files owned by the current user, without group/other permissions (mode 600); symlinks are refused. `context add/use/rm` write the file atomically with mode 0600. `rm` removes only a configuration entry, never a key file. No context-management command requests a server.
+
+`context show` displays stored settings with keys redacted and never resolves key files or displays environment connection values. Server responses redact active API keys, webhook tokens and signatures, including reflected strings and object keys. Transport errors use fixed text instead of exception details that may contain URLs or environment values. The CLI does not phone home. `--body-file` reads the path you pass. Requests go only to the configured Dagu server. See [README.md](./README.md) for schema and commands.
 
 Commands that use POST, PUT, PATCH, or DELETE change that server. The CLI does not ask for a second confirmation.
