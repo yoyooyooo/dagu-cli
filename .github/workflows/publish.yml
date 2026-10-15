@@ -92,12 +92,20 @@ jobs:
             gh release create "$RELEASE_TAG" --title "$RELEASE_TAG" --notes "dagu-cli ${PACKAGE_VERSION}" --verify-tag
           fi
       # Join the tailnet ephemerally, then start automation global-pkg-upgrade.
-      # Secrets: TAILSCALE_AUTHKEY (GHA; aligned with ts-authkey-rotate), DAGU_API_KEY.
+      # Secrets: shared TS_OAUTH_CLIENT_ID / TS_OAUTH_SECRET, DAGU_API_KEY.
       # DAGU_BASE_URL defaults to the fleet HTTPS origin from agent-kit env.fleet.sh.
       - name: Join Tailscale
-        uses: tailscale/github-action@v3
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4
         with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+      - name: Verify CI network identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          tailscale status --json | python3 -c 'import json,sys; s=json.load(sys.stdin); assert s.get("BackendState")=="Running" and s.get("Self",{}).get("Online") is True and s.get("Self",{}).get("Tags")==["tag:ci"], "CI Tailscale identity unavailable"'
+          curl --fail --silent --show-error --max-time 20 https://dagu-mini.tail9146e0.ts.net/health >/dev/null
       - name: Start global-pkg-upgrade
         env:
           DAGU_BASE_URL: https://dagu-mini.tail9146e0.ts.net
@@ -108,12 +116,5 @@ jobs:
             echo "DAGU_API_KEY secret is required to start global-pkg-upgrade" >&2
             exit 1
           fi
-          # Install the just-verified package so --param is available (>= 0.1.2).
-          bun install -g "dagu-cli@${PACKAGE_VERSION}"
-          export PATH="${HOME}/.bun/bin:${PATH}"
-          echo "starting global-pkg-upgrade package=dagu-cli manager=bun version=${PACKAGE_VERSION} base_url=${DAGU_BASE_URL}"
-          # Do not print DAGU_API_KEY / Tailscale secrets.
-          dagu-cli dag start global-pkg-upgrade \
-            --param "package=dagu-cli" \
-            --param "manager=bun" \
-            --param "version=${PACKAGE_VERSION}"
+          # Stable release identity survives lost acknowledgements and workflow reruns.
+          python3 scripts/start-global-pkg-upgrade.py

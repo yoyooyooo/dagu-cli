@@ -11,6 +11,10 @@ on:
     types: [closed]
   workflow_dispatch:
     inputs:
+      verify_only:
+        description: Read-only Tailscale acceptance, without enqueue
+        type: boolean
+        default: false
       repo:
         description: owner/name
         required: true
@@ -34,11 +38,20 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Join Tailscale
-        uses: tailscale/github-action@v3
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4
         with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+      - name: Verify CI network identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          tailscale status --json | python3 -c 'import json,sys; s=json.load(sys.stdin); assert s.get("BackendState")=="Running" and s.get("Self",{}).get("Online") is True and s.get("Self",{}).get("Tags")==["tag:ci"], "CI Tailscale identity unavailable"'
+          curl --fail --silent --show-error --max-time 20 https://dagu-mini.tail9146e0.ts.net/health >/dev/null
 
       - name: Enqueue worktree-remove-merged
+        if: inputs.verify_only != true
         env:
           DAGU_BASE_URL: https://dagu-mini.tail9146e0.ts.net
           DAGU_API_KEY: ${{ secrets.DAGU_API_KEY }}
