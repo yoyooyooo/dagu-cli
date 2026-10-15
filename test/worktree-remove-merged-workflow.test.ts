@@ -7,7 +7,10 @@ test("merged pull requests enqueue worktree-remove-merged and do not cancel Dagu
   expect(text).toContain("workflow_dispatch:");
   expect(text).toContain("permissions:");
   expect(text).toContain("contents: read");
-  expect(text).toContain("secrets.TAILSCALE_AUTHKEY");
+  expect(text).toContain("secrets.TS_OAUTH_CLIENT_ID");
+  expect(text).toContain("secrets.TS_OAUTH_SECRET");
+  expect(text).toContain("tags: tag:ci");
+  expect(text).not.toContain("secrets.TAILSCALE_AUTHKEY");
   expect(text).toContain("secrets.DAGU_API_KEY");
   expect(text).not.toContain("cancel-in-progress: true");
   expect(text).not.toContain("--force");
