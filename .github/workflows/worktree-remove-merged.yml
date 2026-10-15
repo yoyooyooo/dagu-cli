@@ -50,6 +50,23 @@ jobs:
           tailscale status --json | python3 -c 'import json,sys; s=json.load(sys.stdin); assert s.get("BackendState")=="Running" and s.get("Self",{}).get("Online") is True and s.get("Self",{}).get("Tags")==["tag:ci"], "CI Tailscale identity unavailable"'
           curl --fail --silent --show-error --max-time 20 https://dagu-mini.tail9146e0.ts.net/health >/dev/null
 
+      - name: Verify denied CI TCP destinations
+        if: inputs.verify_only == true
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import socket
+          for host, port in [("mini.tail9146e0.ts.net",22),("mini.tail9146e0.ts.net",6666),("ags-mini.tail9146e0.ts.net",443),("ags-imile-win.tail9146e0.ts.net",443)]:
+              socket.getaddrinfo(host,port)
+              try:
+                  connection=socket.create_connection((host,port),timeout=3)
+              except (TimeoutError, OSError):
+                  continue
+              connection.close()
+              raise SystemExit("CI forbidden TCP destination reachable")
+          print("ci_denied_tcp_verification=passed")
+          PY
+
       - name: Enqueue worktree-remove-merged
         if: inputs.verify_only != true
         env:
