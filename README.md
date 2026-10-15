@@ -94,7 +94,9 @@ dagu-cli context rm mini
 
 `context show [name]` uses the explicit name or selected context and redacts `apiKey` as `[redacted]`. It only displays stored settings, never resolves key files or displays environment connection values. `ls` reports stored names and the persisted current context. `add` refuses duplicates; to replace a connection, switch/clear the current context, remove it, and add it again. `rm` refuses the current context and removes only its configuration entry; it never touches the key file. Management commands make no server requests.
 
-The single config file is `~/.config/dagu-cli/contexts.json`, written atomically with mode 0600. Schema:
+`context add/use/rm` serialize the full read–validate–write transaction with an exclusive `~/.config/dagu-cli/contexts.json.lock` file, then atomically replace the config with mode 0600. Concurrent successful changes are preserved. Waiting for the lock fails with a configuration error after 5 seconds; read-only commands do not wait. If a writer crashes, confirm no context writer is running before moving the leftover lock to the system trash and retrying.
+
+The single config file is `~/.config/dagu-cli/contexts.json`. Schema:
 
 ```json
 {

@@ -94,7 +94,9 @@ dagu-cli context rm mini
 
 `context show [name]` 展示指定名称或当前选中的 context，`apiKey` 显示为 `[redacted]`。它只展示已保存配置，不读取密钥文件，也不展示环境变量中的连接值。`ls` 列出已保存名称和持久化的当前 context。`add` 拒绝重名；替换连接时，先切换或清除当前 context，再移除旧项并重新添加。`rm` 拒绝移除当前 context，且只移除配置项，不操作密钥文件。管理命令不访问服务器。
 
-唯一配置文件是 `~/.config/dagu-cli/contexts.json`，以 mode 0600 原子写入。结构：
+`context add/use/rm` 使用排他锁文件 `~/.config/dagu-cli/contexts.json.lock` 串行执行完整的读取、校验和写入，再以 mode 0600 原子替换配置，保留并发成功的修改。等待锁超过 5 秒会返回配置错误；只读命令无需等待。如果写入进程崩溃，须先确认没有 context 写入进程运行，再将遗留锁移至系统废纸篓并重试。
+
+唯一配置文件是 `~/.config/dagu-cli/contexts.json`。结构：
 
 ```json
 {

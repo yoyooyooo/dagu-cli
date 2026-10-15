@@ -5,6 +5,7 @@ This project uses semantic versioning. Before 1.0.0, minor versions may change c
 ## Unreleased
 
 - Add connection contexts: `context ls/show/add/use/rm`, global `--context <name>` (`-c`), and `DAGU_CONTEXT`. Store the current context and named `baseUrl` / `apiKeyFile` references in `~/.config/dagu-cli/contexts.json` (mode 0600). Inline keys are rejected; `show` redacts credentials.
+- Serialize concurrent context mutations across processes, re-reading and validating under an exclusive lock before the atomic mode-0600 commit. Lock waits fail clearly after 5 seconds.
 - Connection precedence: `--base-url` > context flag > `DAGU_CONTEXT` > current context > connection env > legacy automation config. **Migration:** env now overrides the legacy file. Named contexts never borrow credentials from env/legacy on failure. The legacy file is never rewritten.
 - Preserve all 18 Dagu runtime `profile` commands and webhook `--profile` / `x-dagu-profile` behavior. `--profile` never selects a connection.
 - Redact active API keys, webhook tokens and signatures reflected in server responses; transport errors no longer echo exception details.
