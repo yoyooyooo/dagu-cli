@@ -37,7 +37,7 @@ const parseLabels = (value: unknown): Readonly<Record<string, string>> => {
   return value as Readonly<Record<string, string>>;
 };
 
-const labelPairs = (items: readonly string[]): Readonly<Record<string, string>> => {
+export const labelPairs = (items: readonly string[]): Readonly<Record<string, string>> => {
   const entries = items.map((item) => {
     const separator = item.indexOf("=");
     if (separator < 1) throw usage("Expected label key=value pairs (all selector pairs must match).");
@@ -155,6 +155,7 @@ const saveContexts = async (stored: ContextsFile): Promise<void> => {
 };
 
 export const contextCommands = [
+  { command: "exec", usage: "dagu-cli context exec --selector <key=value> [--selector <key=value> ...] [--concurrency <1-32>] [--timeout-ms <1-300000>] -- <REST command> [args]", summary: "Execute one finite REST API command on all matching contexts; defaults: concurrency 4, timeout 30000ms per context. Collect success/failed/timeout; exit 0 only if all succeed; no retries. No local/derived/streaming commands or connection overrides." },
   { command: "labels", usage: "dagu-cli context labels <name> [key=value ...]", summary: "Read labels or merge string-valued labels into a connection; unrelated fields are preserved" },
   { command: "select", usage: "dagu-cli context select <key=value> [key=value ...]", summary: "List sorted context names matching ALL label pairs; does not change current context or execute commands" },
   { command: "ls", usage: "dagu-cli context ls", summary: "List stored connection names and the current context" },
@@ -246,7 +247,7 @@ export const manageContexts = (args: readonly string[], override?: string): Effe
           return { name, removed: true };
         });
       }
-      throw usage("Usage: dagu-cli context ls|show|add|use|rm|labels|select. Run: dagu-cli context --help");
+      throw usage("Usage: dagu-cli context ls|show|add|use|rm|labels|select|exec. Run: dagu-cli context --help");
     },
     catch: (cause) => cause instanceof CliError ? cause : configError("Context configuration is unavailable."),
   });

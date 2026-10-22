@@ -1,14 +1,15 @@
 import { readFileSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
-import { loadConfig } from "./config.ts";
+import { type Config, loadConfig } from "./config.ts";
 import { CliError, usage } from "./errors.ts";
 import { callOperation } from "./http.ts";
 import { findOperation } from "./openapi.ts";
 import { projectDagParams } from "./params.ts";
 import { contextHelp, manageContexts } from "./contexts.ts";
+import { execContexts } from "./context-exec.ts";
 
 const specDir = join(dirname(fileURLToPath(import.meta.url)), "../spec");
 const commandPath = join(specDir, "commands.json");
@@ -484,6 +485,10 @@ const extractContext = (argv: readonly string[]): Effect.Effect<{ argv: readonly
 
 export const run = (input: readonly string[]): Effect.Effect<Envelope, CliError> =>
   Effect.gen(function* () {
+    if (input[0] === "context" && input[1] === "exec") {
+      if (input.length === 2 || input[2] === "--help" || input[2] === "-h") return help(["context", "exec"]);
+      return yield* execContexts(input.slice(2), prepareContextApi);
+    }
     const { argv, context } = yield* extractContext(input);
     if (argv.length === 0 || argv.includes("--help") || argv.includes("-h") || argv[0] === "help") {
       return help(argv.filter((token) => token !== "--help" && token !== "-h" && token !== "help"));
@@ -507,8 +512,16 @@ export const run = (input: readonly string[]): Effect.Effect<Envelope, CliError>
       if (group) return help(invocation.positionals);
       return yield* Effect.fail(usage(`Unknown command ${invocation.positionals.join(" ") || "(empty)"}. Run: dagu-cli --help`));
     }
+    if (invocation.positionals.length === command.argv.length && command.pathParams.length > 0) return help(command.argv);
+    const execute = yield* prepareApi(command, invocation);
+    return yield* execute();
+  });
+
+type ApiExecutor = (connection?: Config) => Effect.Effect<Envelope, CliError>;
+
+const prepareApi = (command: CommandSpec, invocation: Invocation): Effect.Effect<ApiExecutor, CliError> =>
+  Effect.gen(function* () {
     const args = invocation.positionals.slice(command.argv.length);
-    if (args.length === 0 && command.pathParams.length > 0) return help(command.argv);
     if (args.length !== command.pathParams.length) return yield* Effect.fail(usage(`Usage: ${usageLine(command)}`));
     const path: Record<string, string> = {};
     command.pathParams.forEach((name, index) => {
@@ -548,25 +561,56 @@ export const run = (input: readonly string[]): Effect.Effect<Envelope, CliError>
       if (invocation.signature) headers["x-dagu-signature"] = invocation.signature;
       if (invocation.profile) headers["x-dagu-profile"] = invocation.profile;
     }
-    const webhook = command.operationId === "TriggerWebhook";
-    const config = yield* loadConfig({ baseUrl: invocation.baseUrl, context: invocation.context, requireApiKey: !webhook });
-    const operation = yield* findOperation(command.operationId);
-    const response = yield* callOperation({
-      baseUrl: config.baseUrl,
-      apiKey: webhook ? undefined : config.apiKey,
-      operation,
-      path,
-      query,
-      body,
-      bodyKind: command.body,
-      headers,
-      timeoutMs: invocation.timeoutMs,
+    return (connection?: Config) => Effect.gen(function* () {
+      const webhook = command.operationId === "TriggerWebhook";
+      const config = connection ?? (yield* loadConfig({ baseUrl: invocation.baseUrl, context: invocation.context, requireApiKey: !webhook }));
+      const operation = yield* findOperation(command.operationId);
+      const response = yield* callOperation({
+        baseUrl: config.baseUrl,
+        apiKey: webhook ? undefined : config.apiKey,
+        operation,
+        path,
+        query,
+        body,
+        bodyKind: command.body,
+        headers,
+        timeoutMs: invocation.timeoutMs,
+      });
+      const result = { command: command.argv.join(" "), operationId: command.operationId, method: command.method, path: command.path, body: response.body };
+      if (response.status >= 400) {
+        return { ok: false, command: command.argv.join(" "), status: response.status, result, error: { code: `HTTP_${response.status}`, message: `Dagu returned HTTP ${response.status}.`, retryable: response.status === 429 || response.status >= 500 } };
+      }
+      return { ok: true, command: command.argv.join(" "), status: response.status, result };
     });
-    const result = { command: command.argv.join(" "), operationId: command.operationId, method: command.method, path: command.path, body: response.body };
-    if (response.status >= 400) {
-      return { ok: false, command: command.argv.join(" "), status: response.status, result, error: { code: `HTTP_${response.status}`, message: `Dagu returned HTTP ${response.status}.`, retryable: response.status === 429 || response.status >= 500 } };
+  });
+
+/** Validate/freeze one finite catalog API invocation before any fanout I/O. */
+const prepareContextApi = (argv: readonly string[]): Effect.Effect<ApiExecutor, CliError> =>
+  Effect.gen(function* () {
+    if (argv.some((arg) => ["--context", "-c", "--base-url", "--token", "--signature", "--timeout-ms", "--help", "-h"].includes(arg) || arg.startsWith("--context="))) {
+      return yield* Effect.fail(usage("context exec owns connection and timeout flags; pass only a finite REST API command after --."));
     }
-    return { ok: true, command: command.argv.join(" "), status: response.status, result };
+    const invocation = yield* parseInvocation(argv);
+    const command = longestCommand(invocation.positionals);
+    const derived = longestDerived(invocation.positionals);
+    if (!command || (derived && derived.argv.length >= command.argv.length)) {
+      return yield* Effect.fail(usage("context exec requires a catalog REST API leaf command, not a local, derived, or nested context command."));
+    }
+    if (invocation.paramsFile === "-" || invocation.bodyFile === "/dev/stdin") {
+      return yield* Effect.fail(usage("context exec requires finite local input files, not stdin."));
+    }
+    for (const file of [invocation.paramsFile, invocation.bodyFile]) {
+      if (file !== undefined) yield* Effect.tryPromise({
+        try: async () => { if (!(await stat(file)).isFile()) throw new Error("not regular"); },
+        catch: () => usage("context exec body/params inputs must be readable regular files."),
+      });
+    }
+    if ([invocation.query.stream, invocation.flags.stream].some((value) => value !== undefined && booleanFlag(value) !== false)) {
+      return yield* Effect.fail(usage("context exec does not accept streaming API requests."));
+    }
+    // The outer per-context deadline owns classification/cancellation, including
+    // credential loading and response-body consumption. Keep HTTP's fallback later.
+    return yield* prepareApi(command, { ...invocation, timeoutMs: 300_001 });
   });
 
 export const toEnvelope = (error: CliError, command = "dagu-cli"): Envelope => ({

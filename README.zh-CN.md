@@ -118,7 +118,22 @@ dagu-cli context labels mini region=west tier=prod
 dagu-cli context select region=west tier=prod
 ```
 
-`labels <name>` 返回 `{name, labels}`，未设置时为 `{}`；传入键值只合并／替换指定键。`show` 也展示已有 labels。`select` 返回 `{contexts: [排序后的名称]}`，按**所有条件同时匹配**；无匹配时为空列表，退出码仍为 0。它不改变当前 context、不读密钥文件、不访问服务器、不执行命令。键不能为空，不能包含空白、逗号或 `=`；值为字符串，允许空字符串与 `=`。每个条件单独传参，shell 空白需引号；重复键、空 selector 均报错。配置写回保留顶层与各 context 的未知字段，但 `show` 不展示未知字段。Labels 是可见元数据，不应存秘密。本切片不提供多 context 执行或包 exports。
+`labels <name>` 返回 `{name, labels}`，未设置时为 `{}`；传入键值只合并／替换指定键。`show` 也展示已有 labels。`select` 返回 `{contexts: [排序后的名称]}`，按**所有条件同时匹配**；无匹配时为空列表，退出码仍为 0。它不改变当前 context、不读密钥文件、不访问服务器、不执行命令。键不能为空，不能包含空白、逗号或 `=`；值为字符串，允许空字符串与 `=`。每个条件单独传参，shell 空白需引号；重复键、空 selector 均报错。配置写回保留顶层与各 context 的未知字段，但 `show` 不展示未知字段。Labels 是可见元数据，不应存秘密。包 exports 与版本发布独立于这些 CLI 命令。
+
+### 有界多 context 执行
+
+```sh
+dagu-cli context exec --selector region=west --selector tier=prod \
+  --concurrency 4 --timeout-ms 30000 -- dag list --perPage 2
+```
+
+`context exec` 一次性冻结匹配的 context，在同一进程内对每个目标执行相同的 REST API 叶命令。重复 `--selector key=value` 表示 AND 条件。必须提供 selector 与 `--` 分隔符；无匹配为配置错误（退出 2），不算全部成功。忽略当前 context 与环境变量连接默认值，不改配置。
+
+- 并发默认 4，范围 1–32；单 context 超时默认 30000 ms，范围 1–300000 ms。从获得并发槽位起计时，包含密钥读取、HTTP 和响应体消费，超时会取消本地请求。
+- 结果按 context 名称排序。`result.summary` 统计 `total/success/failed/timeout`；`result.results` 为逐项 `{context, outcome, response}`，`response` 是正常脱敏命令 envelope。单项失败不取消其他目标。
+- 只有所有目标成功才退出 0；任一目标配置、传输、HTTP 失败或超时，在收齐结果后退出 1。全局配置／参数非法在请求前退出 2。超时不代表远端写入已回滚；**不自动重试**。
+- 只接受有限的 catalog REST 命令，不接受本地 context/skills、派生的 dag params、嵌套 exec、shell 命令或流式请求（stream=true）。`--` 后拒绝 `--context`/`-c`、`--base-url`、webhook token/signature 覆盖与单命令 `--timeout-ms`，目标和期限由 exec 统一持有。拒绝 stdin params。body/params 文件在执行前只读一次，确保每个目标收到同一 payload。现有日志命令默认 `stream=false`。
+- 只有所有选中目标均获授权时才能执行写 API。上例只读。不涉及发版或 contexts 包 exports。
 
 `currentContext` 可以省略或为 `null`。每个 context 必须提供 REST `baseUrl` 和 `apiKeyFile`；禁止内联 key。`add` 保存绝对路径；手写配置中的相对路径按 `contexts.json` 所在目录解析。配置与密钥文件必须是当前属主的普通文件，不允许 group/other 权限（mode 600），不能是符号链接。名称为 1–64 个字母、数字、下划线或连字符，以字母或数字开头。
 
