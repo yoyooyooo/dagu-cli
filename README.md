@@ -118,7 +118,7 @@ dagu-cli context labels mini region=west tier=prod
 dagu-cli context select region=west tier=prod
 ```
 
-`labels <name>` returns `{name, labels}` (empty object when absent); supplying pairs merges/replaces only those keys. `show` also includes stored labels when present. `select` returns `{contexts: [sorted names]}` matching **all** pairs; no matches returns an empty list with exit 0. It does not change the current context, read key files, contact servers, or execute commands. Keys are non-empty and contain no whitespace, comma, or `=`; values are strings (including empty strings and `=`). Pass each pair as a separate argument and quote shell whitespace. Duplicate keys and empty selectors are rejected. Unknown top-level and per-context fields are preserved by configuration writes but are not exposed by `show`. Labels are user-visible metadata, not a place for secrets. Package exports and version publication are separate from these CLI commands.
+`labels <name>` returns `{name, labels}` (empty object when absent); supplying pairs merges/replaces only those keys. `show` also includes stored labels when present. `select` returns `{contexts: [sorted names]}` matching **all** pairs; no matches returns an empty list with exit 0. It does not change the current context, read key files, contact servers, or execute commands. Keys are non-empty and contain no whitespace, comma, or `=`; values are strings (including empty strings and `=`). Pass each pair as a separate argument and quote shell whitespace. Duplicate keys and empty selectors are rejected. Unknown top-level and per-context fields are preserved by configuration writes but are not exposed by `show`. Labels are user-visible metadata, not a place for secrets. Version publication is separate from these CLI commands.
 
 ### Bounded multi-context execution
 
@@ -133,7 +133,31 @@ dagu-cli context exec --selector region=west --selector tier=prod \
 - Results stay sorted by context name. `result.summary` counts `total/success/failed/timeout`; `result.results` contains `{context, outcome, response}` for every target, where `response` is the normal redacted command envelope. A target failure never cancels siblings.
 - Exit 0 means **all** targets succeeded. Any per-target config, transport or HTTP failure/timeout gives exit 1 after collecting results. Invalid overall config/arguments gives exit 2 before requests. Timeout does not prove a remote write was rolled back: there are **no retries**.
 - Only finite catalog REST commands are supported, not local `context`/`skills`, derived `dag params`, nested exec, shell commands or streaming (`stream=true`). `--context`/`-c`, `--base-url`, webhook token/signature overrides and per-command `--timeout-ms` are refused after `--`; exec owns targets and deadlines. Stdin params are refused. Body/params files are loaded once before fanout, so each target receives the same payload. Existing log commands default to `stream=false`.
-- Only use mutating REST commands when the effect is authorized for **every** selected target. The example above is read-only. Publication and contexts package exports are out of scope.
+- Only use mutating REST commands when the effect is authorized for **every** selected target. The example above is read-only. Publication is separate; the public package API is documented below.
+
+### Public contexts API (Bun, 0.3.0)
+
+The supported package subpath is `dagu-cli/contexts`. It ships TypeScript ESM for **Bun >=1.3.14**, like the CLI; this is not a compiled Node.js/CommonJS SDK. Deep source imports are not supported. Install/pin the exact version only after that version is published; the repository version alone is not release evidence.
+
+```ts
+import { readContexts, readContext, selectContexts, executeContexts, CliError } from "dagu-cli/contexts";
+
+const file = "/absolute/path/to/contexts.json";
+const stored = await readContexts(file); // no argument uses contextsPath()
+const connection = await readContext("mini", file); // metadata only, no resolved secret
+const names = selectContexts(stored, { region: "west", tier: "prod" });
+const report = await executeContexts({
+  configFile: file, selector: { region: "west", tier: "prod" },
+  command: ["dag", "list", "--perPage", "2"], concurrency: 4, timeoutMs: 30000,
+});
+console.log(report.ok, report.result.summary);
+```
+
+`readContexts(file?)` returns the validated `ContextsFile`, preserving unknown fields. `readContext(name, file?)` returns stored `Context` metadata, including its key **path**, never key contents. `selectContexts(stored, selector)` is a synchronous pure AND selector returning sorted names; `labelPairs(["key=value"])` parses CLI-style pairs. `contextsPath()` exposes the default path. Caller-supplied config paths are explicit and relative key references resolve against that file, not the process cwd. File privacy checks are the same as the CLI.
+
+`executeContexts(options)` returns `Promise<ContextExecEnvelope>` with typed `ContextExecReport` / `ContextExecEntry` and the same limits, command restrictions, deterministic results and no-retry semantics as `context exec`. It does not mutate `process.env`, `process.exitCode`, config, or current selection. Per-target failures/timeouts are returned, not thrown; inspect `report.ok` and every result. Overall usage/config failures reject with exported `CliError` (`code`, `message`, `retryable`); catch it explicitly. Importing the module performs no CLI execution or network calls. All exported types are available from the same subpath.
+
+**Validation boundary:** the entire file is validated before selection. An invalid context, even unselected, rejects the operation before any request (CLI exit 2). Errors identify the offending context; isolating malformed entries is deferred to a separate contract change. Treat stored metadata/unknown fields as private and do not log the full configuration.
 
 `currentContext` may be omitted or `null`. Each context requires a REST `baseUrl` and `apiKeyFile`; inline keys are rejected. `add` stores absolute key paths; a relative path in a hand-written file resolves against the directory containing `contexts.json`. The config and referenced key files must be regular files owned by the current user, without group/other permissions (mode 600); symlinks are refused. Context names use 1–64 letters, digits, underscores or hyphens, starting with a letter or digit.
 

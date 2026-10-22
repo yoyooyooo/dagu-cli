@@ -4,6 +4,12 @@ This project uses semantic versioning. Before 1.0.0, minor versions may change c
 
 ## Unreleased
 
+## 0.3.0 (prepared; not yet published)
+
+- C3: add the supported Bun/TypeScript ESM `dagu-cli/contexts` package export: `readContexts`, `readContext`, `selectContexts`, `labelPairs`, `contextsPath`, Promise-based `executeContexts`, `CliError` and public result/options types. Explicit config files avoid process-global mutation; packaged consumer import is regression-tested. This version is prepared for a future exact V_ctx release, not published by this change.
+- C1: optional context labels, `context labels` read/merge and AND `context select`; parser/writer preserve unknown root and context fields.
+- Replace the exec HTTP timeout magic number with named deadline constants; normalize failure response command names to the REST leaf. Keep whole-file context validation, with an error identifying the invalid context.
+
 - Add `context exec --selector key=value [--selector key=value ...] [--concurrency 1-32] [--timeout-ms 1-300000] -- <REST command>`: bounded in-process parallel execution over a frozen context selection, with per-context success/failed/timeout envelopes and an aggregate exit code. Defaults are 4 workers and 30000 ms per context; all results are collected, with no retries. Reject local/derived/streaming commands and connection overrides. Timed-out remote writes can have unknown outcomes.
 - Document the preceding C1 context labels/AND selector and preservation of unknown configuration fields in the shipped skill.
 

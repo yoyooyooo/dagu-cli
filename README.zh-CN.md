@@ -118,7 +118,7 @@ dagu-cli context labels mini region=west tier=prod
 dagu-cli context select region=west tier=prod
 ```
 
-`labels <name>` 返回 `{name, labels}`，未设置时为 `{}`；传入键值只合并／替换指定键。`show` 也展示已有 labels。`select` 返回 `{contexts: [排序后的名称]}`，按**所有条件同时匹配**；无匹配时为空列表，退出码仍为 0。它不改变当前 context、不读密钥文件、不访问服务器、不执行命令。键不能为空，不能包含空白、逗号或 `=`；值为字符串，允许空字符串与 `=`。每个条件单独传参，shell 空白需引号；重复键、空 selector 均报错。配置写回保留顶层与各 context 的未知字段，但 `show` 不展示未知字段。Labels 是可见元数据，不应存秘密。包 exports 与版本发布独立于这些 CLI 命令。
+`labels <name>` 返回 `{name, labels}`，未设置时为 `{}`；传入键值只合并／替换指定键。`show` 也展示已有 labels。`select` 返回 `{contexts: [排序后的名称]}`，按**所有条件同时匹配**；无匹配时为空列表，退出码仍为 0。它不改变当前 context、不读密钥文件、不访问服务器、不执行命令。键不能为空，不能包含空白、逗号或 `=`；值为字符串，允许空字符串与 `=`。每个条件单独传参，shell 空白需引号；重复键、空 selector 均报错。配置写回保留顶层与各 context 的未知字段，但 `show` 不展示未知字段。Labels 是可见元数据，不应存秘密。版本发布独立于这些 CLI 命令。
 
 ### 有界多 context 执行
 
@@ -133,7 +133,31 @@ dagu-cli context exec --selector region=west --selector tier=prod \
 - 结果按 context 名称排序。`result.summary` 统计 `total/success/failed/timeout`；`result.results` 为逐项 `{context, outcome, response}`，`response` 是正常脱敏命令 envelope。单项失败不取消其他目标。
 - 只有所有目标成功才退出 0；任一目标配置、传输、HTTP 失败或超时，在收齐结果后退出 1。全局配置／参数非法在请求前退出 2。超时不代表远端写入已回滚；**不自动重试**。
 - 只接受有限的 catalog REST 命令，不接受本地 context/skills、派生的 dag params、嵌套 exec、shell 命令或流式请求（stream=true）。`--` 后拒绝 `--context`/`-c`、`--base-url`、webhook token/signature 覆盖与单命令 `--timeout-ms`，目标和期限由 exec 统一持有。拒绝 stdin params。body/params 文件在执行前只读一次，确保每个目标收到同一 payload。现有日志命令默认 `stream=false`。
-- 只有所有选中目标均获授权时才能执行写 API。上例只读。不涉及发版或 contexts 包 exports。
+- 只有所有选中目标均获授权时才能执行写 API。上例只读。不涉及发版；公开包 API 见下文。
+
+### 公开 contexts API（Bun，0.3.0）
+
+正式包入口为 `dagu-cli/contexts`，随包提供 TypeScript ESM，运行环境与 CLI 一致：**Bun >=1.3.14**。这不是编译后的 Node.js/CommonJS SDK；不支持深路径导入源码。只有版本真正发布后才安装／锁定该精确版本，仓库版本号本身不是发布证据。
+
+```ts
+import { readContexts, readContext, selectContexts, executeContexts, CliError } from "dagu-cli/contexts";
+
+const file = "/absolute/path/to/contexts.json";
+const stored = await readContexts(file); // 省略则使用 contextsPath()
+const connection = await readContext("mini", file); // 仅元数据，不解析密钥内容
+const names = selectContexts(stored, { region: "west", tier: "prod" });
+const report = await executeContexts({
+  configFile: file, selector: { region: "west", tier: "prod" },
+  command: ["dag", "list", "--perPage", "2"], concurrency: 4, timeoutMs: 30000,
+});
+console.log(report.ok, report.result.summary);
+```
+
+`readContexts(file?)` 返回校验过的 `ContextsFile`，保留未知字段。`readContext(name, file?)` 返回 `Context` 元数据，包含密钥文件**路径**，不包含密钥内容。`selectContexts(stored, selector)` 是同步纯函数，AND 匹配并排序；`labelPairs(["key=value"])` 解析 CLI 键值条件。`contextsPath()` 返回默认路径。显式配置文件中的相对密钥路径相对于该文件解析，不依赖进程 cwd；文件权限检查与 CLI 相同。
+
+`executeContexts(options)` 返回 `Promise<ContextExecEnvelope>`，提供 `ContextExecReport` / `ContextExecEntry` 类型，与 CLI exec 使用相同的上限、命令限制、确定性结果和不重试语义。不修改 `process.env`、`process.exitCode`、配置或当前选择。逐目标失败／超时记录在返回结果中，不抛出；调用方须检查 `report.ok` 与每项结果。全局参数／配置错误以导出的 `CliError`（code/message/retryable）拒绝 Promise。导入模块不会启动 CLI 或访问网络。公开类型可从同一子路径导入。
+
+**校验边界：**在 selector 之前全量校验文件。任一畸形 context（即使未选中）都会在请求前拒绝整个操作（CLI exit 2），错误会定位到该 context。隔离畸形项需要另行调整合同，本次保留此限制。配置元数据／未知字段可能敏感，不要整体打印。
 
 `currentContext` 可以省略或为 `null`。每个 context 必须提供 REST `baseUrl` 和 `apiKeyFile`；禁止内联 key。`add` 保存绝对路径；手写配置中的相对路径按 `contexts.json` 所在目录解析。配置与密钥文件必须是当前属主的普通文件，不允许 group/other 权限（mode 600），不能是符号链接。名称为 1–64 个字母、数字、下划线或连字符，以字母或数字开头。
 
