@@ -62,7 +62,7 @@ export const buildUrl = (input: Pick<CallInput, "baseUrl" | "operation" | "path"
 
 export const callOperation = (input: CallInput): Effect.Effect<{ readonly status: number; readonly body: unknown }, CliError> =>
   Effect.tryPromise({
-    try: async () => {
+    try: async (signal) => {
       const url = buildUrl(input);
       const encoded = encodeBody(input);
       const headers: Record<string, string> = { accept: "application/json", ...input.headers };
@@ -72,7 +72,7 @@ export const callOperation = (input: CallInput): Effect.Effect<{ readonly status
         method: input.operation.method,
         headers,
         body: encoded?.body,
-        signal: AbortSignal.timeout(input.timeoutMs),
+        signal: AbortSignal.any([signal, AbortSignal.timeout(input.timeoutMs)]),
       });
       const text = await response.text();
       let body: unknown = text;

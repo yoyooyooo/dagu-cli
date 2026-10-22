@@ -4,6 +4,9 @@ This project uses semantic versioning. Before 1.0.0, minor versions may change c
 
 ## Unreleased
 
+- Add `context exec --selector key=value [--selector key=value ...] [--concurrency 1-32] [--timeout-ms 1-300000] -- <REST command>`: bounded in-process parallel execution over a frozen context selection, with per-context success/failed/timeout envelopes and an aggregate exit code. Defaults are 4 workers and 30000 ms per context; all results are collected, with no retries. Reject local/derived/streaming commands and connection overrides. Timed-out remote writes can have unknown outcomes.
+- Document the preceding C1 context labels/AND selector and preservation of unknown configuration fields in the shipped skill.
+
 ## 0.2.0
 
 - Add connection contexts: `context ls/show/add/use/rm`, global `--context <name>` (`-c`), and `DAGU_CONTEXT`. Store the current context and named `baseUrl` / `apiKeyFile` references in `~/.config/dagu-cli/contexts.json` (mode 0600). Inline keys are rejected; `show` redacts credentials.

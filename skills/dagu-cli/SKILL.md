@@ -29,10 +29,15 @@ dagu-cli context show [name]
 dagu-cli context add <name> --base-url <url> --api-key-file <path>
 dagu-cli context use <name|->
 dagu-cli context rm <name>
+dagu-cli context labels <name> [key=value ...]
+dagu-cli context select <key=value> [key=value ...]
+dagu-cli context exec --selector <key=value> [--selector <key=value> ...] [--concurrency <1-32>] [--timeout-ms <1-300000>] -- dag list --perPage 2
 dagu-cli -c mini dag list
 ```
 
 `show` displays stored settings with keys redacted, never environment connection values or resolved key contents. `add/use/rm` atomically write `contexts.json` with mode 0600. `add` refuses duplicates; replace a connection by clearing/switching the current context, removing it, then adding it again. `rm` refuses the current context and never touches key files. Management is local; no server request is made. `use -` clears the persisted selection but does not override `DAGU_CONTEXT`.
+
+Optional string-valued `labels` are generic metadata, not secrets. `labels` reads or merges keys; `select` lists sorted names matching all pairs. Configuration writes preserve unknown root/context fields. `context exec` runs one finite catalog REST API command in-process on all matching connections with bounded concurrency (default 4) and a per-context deadline (default 30000ms, starts when its slot opens). Output collects each context's success/failed/timeout and normal redacted response envelope, sorted by name; exit 0 only if all succeed, 1 if any target fails/times out, 2 for invalid overall usage/config or no matches. No retries: timed-out remote writes may have unknown outcomes. Exec ignores current/env connection selection, never writes configuration, and rejects local/derived/nested/streaming commands, stdin params, connection overrides and webhook credential overrides. Body/params files are prepared once. Only run mutating API commands when every selected target is authorized. See `context exec --help` and the README.
 
 Without a selected context, missing URL/key fields fall back from env to the optional legacy automation config (`baseUrl`, non-empty `key` or `apiKey`), then to the loopback URL default. **Migration:** env now precedes that legacy file. The CLI never rewrites it. See the repository README for the Multica comparison and complete precedence.
 
