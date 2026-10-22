@@ -9,7 +9,7 @@ import { callOperation } from "./http.ts";
 import { findOperation } from "./openapi.ts";
 import { projectDagParams } from "./params.ts";
 import { contextHelp, manageContexts } from "./contexts.ts";
-import { execContexts } from "./context-exec.ts";
+import { CONTEXT_HTTP_FALLBACK_TIMEOUT_MS, execContexts, type PreparedContextCommand } from "./context-exec.ts";
 
 const specDir = join(dirname(fileURLToPath(import.meta.url)), "../spec");
 const commandPath = join(specDir, "commands.json");
@@ -585,7 +585,7 @@ const prepareApi = (command: CommandSpec, invocation: Invocation): Effect.Effect
   });
 
 /** Validate/freeze one finite catalog API invocation before any fanout I/O. */
-const prepareContextApi = (argv: readonly string[]): Effect.Effect<ApiExecutor, CliError> =>
+export const prepareContextApi = (argv: readonly string[]): Effect.Effect<PreparedContextCommand, CliError> =>
   Effect.gen(function* () {
     if (argv.some((arg) => ["--context", "-c", "--base-url", "--token", "--signature", "--timeout-ms", "--help", "-h"].includes(arg) || arg.startsWith("--context="))) {
       return yield* Effect.fail(usage("context exec owns connection and timeout flags; pass only a finite REST API command after --."));
@@ -610,7 +610,7 @@ const prepareContextApi = (argv: readonly string[]): Effect.Effect<ApiExecutor, 
     }
     // The outer per-context deadline owns classification/cancellation, including
     // credential loading and response-body consumption. Keep HTTP's fallback later.
-    return yield* prepareApi(command, { ...invocation, timeoutMs: 300_001 });
+    return { command: command.argv.join(" "), execute: yield* prepareApi(command, { ...invocation, timeoutMs: CONTEXT_HTTP_FALLBACK_TIMEOUT_MS }) };
   });
 
 export const toEnvelope = (error: CliError, command = "dagu-cli"): Envelope => ({

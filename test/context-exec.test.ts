@@ -50,6 +50,7 @@ describe("context exec through real CLI subprocesses", () => {
       expect(report.results.map((r) => [r.context, r.outcome])).toEqual([["target0", "success"], ["target1", "failed"], ["target2", "timeout"]]);
       expect(report.results[1]!.response.error?.code).toBe("HTTP_503");
       expect(report.results[2]!.response.error?.code).toBe("TIMEOUT");
+      expect(report.results.every((item) => item.response.command === "dag list")).toBe(true);
       expect(requests.sort()).toEqual(["0:/api/v1/dags?perPage=2", "1:/api/v1/dags?perPage=2", "2:/api/v1/dags?perPage=2"]);
       expect(await readFile(f.file, "utf8")).toBe(before);
     } finally { servers.forEach((s) => s.stop(true)); }
@@ -137,6 +138,21 @@ describe("context exec through real CLI subprocesses", () => {
       expect(output.code).toBe(0);
       expect((output.envelope.result as Report).results.map((r) => r.context)).toEqual(["a"]);
       expect(count).toBe(1);
+    } finally { server.stop(true); }
+  });
+
+  test("whole-file validation identifies an invalid unselected context before requests", async () => {
+    let count = 0;
+    const server = Bun.serve({ port: 0, fetch() { count++; return Response.json({}); } });
+    try {
+      const f = await fixture({ valid: server.url.origin });
+      const stored = JSON.parse(await readFile(f.file, "utf8"));
+      stored.contexts.malformed = { labels: { group: "other" } };
+      await writeFile(f.file, JSON.stringify(stored));
+      const output = await f.invoke(exec());
+      expect(output.code).toBe(2);
+      expect(output.envelope.error?.message).toContain('Invalid context "malformed"');
+      expect(count).toBe(0);
     } finally { server.stop(true); }
   });
 

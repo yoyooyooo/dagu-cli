@@ -67,8 +67,8 @@ const parseContext = (value: unknown): Context => {
     ...(record.labels === undefined ? {} : { labels: parseLabels(record.labels) }) };
 };
 
-export const readContexts = async (): Promise<ContextsFile> => {
-  const text = await readPrivateFile(contextsPath());
+export const readContexts = async (file: string = contextsPath()): Promise<ContextsFile> => {
+  const text = await readPrivateFile(file);
   if (text === undefined) return { currentContext: null, contexts: {} };
   const record = parseConfigObject(text);
   if (record.currentContext !== undefined && record.currentContext !== null && typeof record.currentContext !== "string") {
@@ -77,7 +77,10 @@ export const readContexts = async (): Promise<ContextsFile> => {
   if (record.contexts === null || typeof record.contexts !== "object" || Array.isArray(record.contexts)) {
     throw configError("contexts must be an object of named connections.");
   }
-  const contexts = Object.fromEntries(Object.entries(record.contexts).map(([name, value]) => [checkName(name), parseContext(value)]));
+  const contexts = Object.fromEntries(Object.entries(record.contexts).map(([name, value]) => {
+    try { return [checkName(name), parseContext(value)]; }
+    catch { throw configError(`Invalid context ${JSON.stringify(name)}; verify its name, baseUrl, apiKeyFile and labels. The entire contexts file is validated before selection.`); }
+  }));
   return { ...record, currentContext: typeof record.currentContext === "string" ? checkName(record.currentContext) : null, contexts };
 };
 
