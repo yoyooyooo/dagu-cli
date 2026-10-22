@@ -94,7 +94,7 @@ dagu-cli context rm mini
 
 `context show [name]` 展示指定名称或当前选中的 context，`apiKey` 显示为 `[redacted]`。它只展示已保存配置，不读取密钥文件，也不展示环境变量中的连接值。`ls` 列出已保存名称和持久化的当前 context。`add` 拒绝重名；替换连接时，先切换或清除当前 context，再移除旧项并重新添加。`rm` 拒绝移除当前 context，且只移除配置项，不操作密钥文件。管理命令不访问服务器。
 
-`context add/use/rm` 使用排他锁文件 `~/.config/dagu-cli/contexts.json.lock` 串行执行完整的读取、校验和写入，再以 mode 0600 原子替换配置，保留并发成功的修改。等待锁超过 5 秒会返回配置错误；只读命令无需等待。如果写入进程崩溃，须先确认没有 context 写入进程运行，再将遗留锁移至系统废纸篓并重试。
+`context add/use/rm/labels` 使用排他锁文件 `~/.config/dagu-cli/contexts.json.lock` 串行执行完整的读取、校验和写入，再以 mode 0600 原子替换配置，保留并发成功的修改。等待锁超过 5 秒会返回配置错误；只读命令无需等待。如果写入进程崩溃，须先确认没有 context 写入进程运行，再将遗留锁移至系统废纸篓并重试。
 
 唯一配置文件是 `~/.config/dagu-cli/contexts.json`。结构：
 
@@ -109,6 +109,16 @@ dagu-cli context rm mini
   }
 }
 ```
+
+Labels 是 context 上可选的字符串键值元数据，例如 `"labels": {"region": "west", "tier": "prod"}`。读取或合并设置：
+
+```sh
+dagu-cli context labels mini
+dagu-cli context labels mini region=west tier=prod
+dagu-cli context select region=west tier=prod
+```
+
+`labels <name>` 返回 `{name, labels}`，未设置时为 `{}`；传入键值只合并／替换指定键。`show` 也展示已有 labels。`select` 返回 `{contexts: [排序后的名称]}`，按**所有条件同时匹配**；无匹配时为空列表，退出码仍为 0。它不改变当前 context、不读密钥文件、不访问服务器、不执行命令。键不能为空，不能包含空白、逗号或 `=`；值为字符串，允许空字符串与 `=`。每个条件单独传参，shell 空白需引号；重复键、空 selector 均报错。配置写回保留顶层与各 context 的未知字段，但 `show` 不展示未知字段。Labels 是可见元数据，不应存秘密。本切片不提供多 context 执行或包 exports。
 
 `currentContext` 可以省略或为 `null`。每个 context 必须提供 REST `baseUrl` 和 `apiKeyFile`；禁止内联 key。`add` 保存绝对路径；手写配置中的相对路径按 `contexts.json` 所在目录解析。配置与密钥文件必须是当前属主的普通文件，不允许 group/other 权限（mode 600），不能是符号链接。名称为 1–64 个字母、数字、下划线或连字符，以字母或数字开头。
 
@@ -161,7 +171,7 @@ dagu-cli wiki attachment put --body-file <path> --query '<json>'
 
 ## 安全与隐私
 
-CLI 只把 API key 发给你设置的基址。`--body-file` 只读取你传入的本地路径。CLI 读取 context 配置和选中的私有密钥文件，或回退到可选的旧 `~/.config/dagu/automation.json`。只有 `context add/use/rm` 写入连接配置；CLI 不把数据发到其他地方。`context show` 对凭据脱敏；服务器响应中的当前 API key、webhook token 和签名也会脱敏。传输错误使用固定文本，不回显 URL、环境变量值或凭据。
+CLI 只把 API key 发给你设置的基址。`--body-file` 只读取你传入的本地路径。CLI 读取 context 配置和选中的私有密钥文件，或回退到可选的旧 `~/.config/dagu/automation.json`。只有 `context add/use/rm/labels` 写入连接配置；CLI 不把数据发到其他地方。`context show` 对凭据脱敏；服务器响应中的当前 API key、webhook token 和签名也会脱敏。传输错误使用固定文本，不回显 URL、环境变量值或凭据。
 
 没有二次确认。HTTP 方法是 POST、PUT、PATCH 或 DELETE 的命令会修改服务器。只在确实需要这个效果时运行。
 

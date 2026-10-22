@@ -7,11 +7,14 @@ import { CliError, configError, usage } from "./errors.ts";
 import { CONFIG_LIMIT, isNodeError, nonEmpty, parseConfigObject, readPrivateFile, validateBaseUrl } from "./private-config.ts";
 
 export type Context = {
+  readonly [key: string]: unknown;
+  readonly labels?: Readonly<Record<string, string>>;
   readonly baseUrl: string;
   readonly apiKeyFile: string;
 };
 
 export type ContextsFile = {
+  readonly [key: string]: unknown;
   readonly currentContext: string | null;
   readonly contexts: Readonly<Record<string, Context>>;
 };
@@ -26,13 +29,42 @@ const checkName = (name: string): string => {
   return name;
 };
 
+const parseLabels = (value: unknown): Readonly<Record<string, string>> => {
+  if (value === null || typeof value !== "object" || Array.isArray(value) ||
+      Object.entries(value).some(([key, item]) => !key || key.includes("=") || /[\s,]/.test(key) || typeof item !== "string")) {
+    throw configError("labels must be a string-valued object with non-empty keys containing no whitespace, comma, or equals sign.");
+  }
+  return value as Readonly<Record<string, string>>;
+};
+
+const labelPairs = (items: readonly string[]): Readonly<Record<string, string>> => {
+  const entries = items.map((item) => {
+    const separator = item.indexOf("=");
+    if (separator < 1) throw usage("Expected label key=value pairs (all selector pairs must match).");
+    return [item.slice(0, separator), item.slice(separator + 1)] as const;
+  });
+  if (new Set(entries.map(([key]) => key)).size !== entries.length) throw usage("Label keys must not repeat.");
+  return parseLabels(Object.fromEntries(entries));
+};
+
+/** Pure AND selector; absent labels do not match, including an empty value. */
+export const selectContexts = (stored: ContextsFile, selector: Readonly<Record<string, string>>): readonly string[] => {
+  const pairs = Object.entries(parseLabels(selector));
+  if (pairs.length === 0) throw usage("At least one label selector is required.");
+  return Object.keys(stored.contexts).filter((name) => {
+    const labels = stored.contexts[name]!.labels ?? {};
+    return pairs.every(([key, value]) => Object.hasOwn(labels, key) && labels[key] === value);
+  }).sort();
+};
+
 const parseContext = (value: unknown): Context => {
   if (value === null || typeof value !== "object" || Array.isArray(value)) throw configError("Context must be an object.");
   const record = value as Record<string, unknown>;
   if (record.apiKey !== undefined || record.key !== undefined) throw configError("Contexts accept apiKeyFile references only; inline keys are not supported.");
   if (typeof record.baseUrl !== "string" || !nonEmpty(record.baseUrl)) throw configError("Context requires baseUrl.");
   if (typeof record.apiKeyFile !== "string" || !nonEmpty(record.apiKeyFile)) throw configError("Context requires an apiKeyFile reference.");
-  return { baseUrl: validateBaseUrl(record.baseUrl), apiKeyFile: record.apiKeyFile };
+  return { ...record, baseUrl: validateBaseUrl(record.baseUrl), apiKeyFile: record.apiKeyFile,
+    ...(record.labels === undefined ? {} : { labels: parseLabels(record.labels) }) };
 };
 
 export const readContexts = async (): Promise<ContextsFile> => {
@@ -46,7 +78,7 @@ export const readContexts = async (): Promise<ContextsFile> => {
     throw configError("contexts must be an object of named connections.");
   }
   const contexts = Object.fromEntries(Object.entries(record.contexts).map(([name, value]) => [checkName(name), parseContext(value)]));
-  return { currentContext: typeof record.currentContext === "string" ? checkName(record.currentContext) : null, contexts };
+  return { ...record, currentContext: typeof record.currentContext === "string" ? checkName(record.currentContext) : null, contexts };
 };
 
 const lookup = (stored: ContextsFile, name: string): Context => {
@@ -123,6 +155,8 @@ const saveContexts = async (stored: ContextsFile): Promise<void> => {
 };
 
 export const contextCommands = [
+  { command: "labels", usage: "dagu-cli context labels <name> [key=value ...]", summary: "Read labels or merge string-valued labels into a connection; unrelated fields are preserved" },
+  { command: "select", usage: "dagu-cli context select <key=value> [key=value ...]", summary: "List sorted context names matching ALL label pairs; does not change current context or execute commands" },
   { command: "ls", usage: "dagu-cli context ls", summary: "List stored connection names and the current context" },
   { command: "show", usage: "dagu-cli context show [name]", summary: "Show stored configuration with keys redacted; never show environment connection values" },
   { command: "add", usage: "dagu-cli context add <name> --base-url <url> --api-key-file <path>", summary: "Add a named connection using a private key file reference" },
@@ -143,6 +177,23 @@ export const manageContexts = (args: readonly string[], override?: string): Effe
     try: async () => {
       const [action, ...rest] = args;
       if (!action) return contextHelp(["context"]);
+      if (action === "select" && rest.length > 0) {
+        const selector = labelPairs(rest);
+        return { contexts: selectContexts(await readContexts(), selector) };
+      }
+      if (action === "labels" && rest.length > 0) {
+        const name = rest[0]!;
+        if (rest.length === 1) {
+          return { name, labels: lookup(await readContexts(), name).labels ?? {} };
+        }
+        const updates = labelPairs(rest.slice(1));
+        return modifyContexts(async (stored) => {
+          const context = lookup(stored, name);
+          const labels = { ...context.labels, ...updates };
+          await saveContexts({ ...stored, contexts: { ...stored.contexts, [name]: { ...context, labels } } });
+          return { name, labels };
+        });
+      }
       if (action === "ls" && rest.length === 0) {
         const stored = await readContexts();
         return { contexts: Object.keys(stored.contexts).sort(), currentContext: stored.currentContext };
@@ -152,7 +203,7 @@ export const manageContexts = (args: readonly string[], override?: string): Effe
         const name = rest[0] ?? selectedName(stored, override);
         if (!name) throw configError("No context selected. Pass a name or run context use.");
         const context = lookup(stored, name);
-        return { name, baseUrl: context.baseUrl, apiKey: "[redacted]", credentialSource: "file" };
+        return { name, baseUrl: context.baseUrl, apiKey: "[redacted]", credentialSource: "file", ...(context.labels === undefined ? {} : { labels: context.labels }) };
       }
       if (action === "add") {
         return modifyContexts(async (stored) => {
@@ -195,7 +246,7 @@ export const manageContexts = (args: readonly string[], override?: string): Effe
           return { name, removed: true };
         });
       }
-      throw usage("Usage: dagu-cli context ls|show|add|use|rm. Run: dagu-cli context --help");
+      throw usage("Usage: dagu-cli context ls|show|add|use|rm|labels|select. Run: dagu-cli context --help");
     },
     catch: (cause) => cause instanceof CliError ? cause : configError("Context configuration is unavailable."),
   });

@@ -352,3 +352,69 @@ describe("connection contexts through the CLI entry point", () => {
     expect((await f.invoke(["context", "add", "mini", "--base-url", "https://dagu.example"])).code).toBe(2);
   });
 });
+
+
+describe("context labels C1", () => {
+  test("labels merge, selector AND, unknown fields and other writers round trip", async () => {
+    const f = await fixture();
+    const connection = { baseUrl: "https://example.test", apiKeyFile: "missing-key", extension: { future: [1, 2] } };
+    await f.store(f.file, { future: { version: 3 }, contexts: {
+      alpha: { ...connection, labels: { region: "west", tier: "test" } },
+      beta: { ...connection, labels: { region: "west" } },
+      gamma: connection,
+    } });
+    expect((await f.invoke(["context", "labels", "alpha", "tier=prod", "empty=", "url=a=b", "__proto__=safe"])).code).toBe(0);
+    const labels = { region: "west", tier: "prod", empty: "", url: "a=b", ["__proto__"]: "safe" };
+    expect((await f.invoke(["context", "labels", "alpha"])).envelope.result).toEqual({ name: "alpha", labels });
+    expect((await f.invoke(["context", "show", "alpha"])).envelope.result).toMatchObject({ labels });
+    for (const [pairs, names] of [
+      [["region=west"], ["alpha", "beta"]],
+      [["region=west", "tier=prod"], ["alpha"]],
+      [["empty="], ["alpha"]],
+      [["__proto__=safe"], ["alpha"]],
+      [["tier=missing"], []],
+    ] as const) {
+      expect((await f.invoke(["context", "select", ...pairs])).envelope.result).toEqual({ contexts: names });
+    }
+    await f.invoke(["context", "use", "alpha"]);
+    await f.invoke(["context", "rm", "gamma"]);
+    await f.add("delta", "https://delta.example");
+    const stored = JSON.parse(await readFile(f.file, "utf8"));
+    expect(stored.future).toEqual({ version: 3 });
+    expect(stored.contexts.alpha).toEqual({ ...connection, labels });
+    expect(stored.contexts.beta.extension).toEqual(connection.extension);
+  });
+
+  test("invalid labels/selectors fail without writing or leaking unknown fields", async () => {
+    const f = await fixture();
+    await f.store(f.file, { contexts: { alpha: { baseUrl: "https://example.test", apiKeyFile: "missing", privateExtension: "not-for-output" } } });
+    const before = await readFile(f.file, "utf8");
+    for (const args of [
+      ["labels"], ["select"], ["labels", "missing", "x=y"],
+      ["labels", "alpha", "=value"], ["labels", "alpha", "bad key=value"],
+      ["labels", "alpha", "x=a", "x=b"], ["select", "no-equals"],
+    ]) {
+      const result = await f.invoke(["context", ...args]);
+      expect(result.code).toBe(2);
+      expect(result.text.includes("not-for-output")).toBe(false);
+      expect(await readFile(f.file, "utf8")).toBe(before);
+    }
+    for (const labels of [null, [], "bad", { key: 1 }, { "": "value" }]) {
+      await f.store(f.file, { contexts: { alpha: { baseUrl: "https://example.test", apiKeyFile: "missing", labels } } });
+      expect((await f.invoke(["context", "ls"])).code).toBe(2);
+    }
+  });
+
+  test("concurrent label writers preserve both updates and help discovers commands", async () => {
+    const f = await fixture();
+    await f.add("alpha", "https://example.test");
+    const results = await raceWrites(f, ["context", "labels", "alpha", "a=1"], ["context", "labels", "alpha", "b=2"], f.file);
+    expect(results.map((result) => result.code)).toEqual([0, 0]);
+    expect((await f.invoke(["context", "labels", "alpha"])).envelope.result).toEqual({ name: "alpha", labels: { a: "1", b: "2" } });
+    for (const args of [["context", "--help"], ["context", "labels", "--help"], ["context", "select", "--help"]]) {
+      const result = await f.invoke(args);
+      expect(result.code).toBe(0);
+      expect(result.text).toContain("key=value");
+    }
+  });
+});
