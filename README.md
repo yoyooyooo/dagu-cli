@@ -94,7 +94,7 @@ dagu-cli context rm mini
 
 `context show [name]` uses the explicit name or selected context and redacts `apiKey` as `[redacted]`. It only displays stored settings, never resolves key files or displays environment connection values. `ls` reports stored names and the persisted current context. `add` refuses duplicates; to replace a connection, switch/clear the current context, remove it, and add it again. `rm` refuses the current context and removes only its configuration entry; it never touches the key file. Management commands make no server requests.
 
-`context add/use/rm` serialize the full read–validate–write transaction with an exclusive `~/.config/dagu-cli/contexts.json.lock` file, then atomically replace the config with mode 0600. Concurrent successful changes are preserved. Waiting for the lock fails with a configuration error after 5 seconds; read-only commands do not wait. If a writer crashes, confirm no context writer is running before moving the leftover lock to the system trash and retrying.
+`context add/use/rm/labels` serialize the full read–validate–write transaction with an exclusive `~/.config/dagu-cli/contexts.json.lock` file, then atomically replace the config with mode 0600. Concurrent successful changes are preserved. Waiting for the lock fails with a configuration error after 5 seconds; read-only commands do not wait. If a writer crashes, confirm no context writer is running before moving the leftover lock to the system trash and retrying.
 
 The single config file is `~/.config/dagu-cli/contexts.json`. Schema:
 
@@ -109,6 +109,16 @@ The single config file is `~/.config/dagu-cli/contexts.json`. Schema:
   }
 }
 ```
+
+Labels are optional string key/value metadata, e.g. `"labels": {"region": "west", "tier": "prod"}` on a context. Read or merge labels with:
+
+```sh
+dagu-cli context labels mini
+dagu-cli context labels mini region=west tier=prod
+dagu-cli context select region=west tier=prod
+```
+
+`labels <name>` returns `{name, labels}` (empty object when absent); supplying pairs merges/replaces only those keys. `show` also includes stored labels when present. `select` returns `{contexts: [sorted names]}` matching **all** pairs; no matches returns an empty list with exit 0. It does not change the current context, read key files, contact servers, or execute commands. Keys are non-empty and contain no whitespace, comma, or `=`; values are strings (including empty strings and `=`). Pass each pair as a separate argument and quote shell whitespace. Duplicate keys and empty selectors are rejected. Unknown top-level and per-context fields are preserved by configuration writes but are not exposed by `show`. Labels are user-visible metadata, not a place for secrets. No multi-context execution or package exports are added here.
 
 `currentContext` may be omitted or `null`. Each context requires a REST `baseUrl` and `apiKeyFile`; inline keys are rejected. `add` stores absolute key paths; a relative path in a hand-written file resolves against the directory containing `contexts.json`. The config and referenced key files must be regular files owned by the current user, without group/other permissions (mode 600); symlinks are refused. Context names use 1–64 letters, digits, underscores or hyphens, starting with a letter or digit.
 
@@ -161,7 +171,7 @@ The full tree is the CLI help, not this page. Start with `skills/dagu-cli/SKILL.
 
 ## Security and privacy
 
-The CLI sends the API key only to the base URL you set. It reads `--body-file` from the local path you pass. It reads context configuration and the selected private key file, or falls back to the optional legacy `~/.config/dagu/automation.json`. Only `context add/use/rm` write connection configuration. It does not send data anywhere else. `context show` redacts credentials; server responses redact active API keys, webhook tokens, and signatures too. Transport errors use fixed text rather than echoing a URL, environment value, or credential.
+The CLI sends the API key only to the base URL you set. It reads `--body-file` from the local path you pass. It reads context configuration and the selected private key file, or falls back to the optional legacy `~/.config/dagu/automation.json`. Only `context add/use/rm/labels` write connection configuration. It does not send data anywhere else. `context show` redacts credentials; server responses redact active API keys, webhook tokens, and signatures too. Transport errors use fixed text rather than echoing a URL, environment value, or credential.
 
 There is no second confirmation prompt. A command whose HTTP method is POST, PUT, PATCH, or DELETE changes the server. Run those only when that effect is intended.
 
