@@ -17,29 +17,9 @@ legacy config  ~/.config/dagu/automation.json (DAGU_CONFIG_FILE overrides)
 
 The base URL is the server origin. `/api/v1` is appended unless it is already present. Do not append `/mcp`. Do not put the key in the URL, flags, or command output.
 
-**Context = connection target; profile = Dagu runtime profile.** The 18 `profile ...` API commands and webhook `--profile` (`x-dagu-profile` header) keep their existing behavior. `--profile` never selects a context.
+**Context = connection target; profile = Dagu runtime profile.** Use `dagu-cli context ls` to see stored names and `dagu-cli --context <name> dag list` to select one explicitly. A failed named connection never borrows another connection's key. `--base-url` retains the selected key. Use it only when that credential belongs at the overridden origin. Do not store secrets in labels.
 
-Connection precedence: `--base-url` > global `--context <name>` / `-c <name>` > non-empty `DAGU_CONTEXT` > stored `currentContext` > `DAGU_BASE_URL` / `DAGU_API_KEY` (`DAGU_API_TOKEN` alias) > legacy automation config. Flags work before or after the command; `--context=<name>` also works. `--base-url` changes only the URL, retaining the selected key: use only when that credential belongs at the overridden origin. A selected context is self-contained; missing/invalid contexts or key files fail without borrowing credentials.
-
-Schema: `{"currentContext":"mini","contexts":{"mini":{"baseUrl":"https://dagu.example","apiKeyFile":"/absolute/path/to/key"}}}`. `currentContext` can be omitted or null. Contexts store file references only; inline keys are rejected. Relative references in hand-written config resolve against `contexts.json`; `add` stores absolute paths. Config/key files must be owner-private regular files (mode 600), not symlinks.
-
-```text
-dagu-cli context ls
-dagu-cli context show [name]
-dagu-cli context add <name> --base-url <url> --api-key-file <path>
-dagu-cli context use <name|->
-dagu-cli context rm <name>
-dagu-cli context labels <name> [key=value ...]
-dagu-cli context select <key=value> [key=value ...]
-dagu-cli context exec --selector <key=value> [--selector <key=value> ...] [--concurrency <1-32>] [--timeout-ms <1-300000>] -- dag list --perPage 2
-dagu-cli -c mini dag list
-```
-
-`show` displays stored settings with keys redacted, never environment connection values or resolved key contents. `add/use/rm` atomically write `contexts.json` with mode 0600. `add` refuses duplicates; replace a connection by clearing/switching the current context, removing it, then adding it again. `rm` refuses the current context and never touches key files. Management is local; no server request is made. `use -` clears the persisted selection but does not override `DAGU_CONTEXT`.
-
-Optional string-valued `labels` are generic metadata, not secrets. `labels` reads or merges keys; `select` lists sorted names matching all pairs. Configuration writes preserve unknown root/context fields. `context exec` runs one finite catalog REST API command in-process on all matching connections with bounded concurrency (default 4) and a per-context deadline (default 30000ms, starts when its slot opens). Output collects each context's success/failed/timeout and normal redacted response envelope, sorted by name; exit 0 only if all succeed, 1 if any target fails/times out, 2 for invalid overall usage/config or no matches. No retries: timed-out remote writes may have unknown outcomes. Exec ignores current/env connection selection, never writes configuration, and rejects local/derived/nested/streaming commands, stdin params, connection overrides and webhook credential overrides. Body/params files are prepared once. Only run mutating API commands when every selected target is authorized. See `context exec --help` and the README.
-
-Without a selected context, missing URL/key fields fall back from env to the optional legacy automation config (`baseUrl`, non-empty `key` or `apiKey`), then to the loopback URL default. **Migration:** env now precedes that legacy file. The CLI never rewrites it. See the repository README for the Multica comparison and complete precedence.
+`context select` lists matching names without executing a request. `context exec` sends one REST command to each selected target. Confirm every target is authorized before any write. A timeout does not prove that a remote write failed. The CLI does not retry it. Read `dagu-cli context --help`, `dagu-cli context exec --help`, and the [connection context reference](https://github.com/yoyooyooo/dagu-cli/blob/main/docs/contexts.md) for configuration, precedence, and result semantics.
 
 ## Disclosure
 
@@ -81,4 +61,4 @@ Stdout is JSON. Exit `0` on success, `2` on usage or config errors, and `1` on H
 
 ## Programmable contexts (Bun >=1.3.14)
 
-`dagu-cli/contexts` is the public TypeScript ESM package subpath (prepared version 0.3.0; do not assume it is published). Import `readContexts(file?)`, `readContext(name, file?)`, `selectContexts(stored, selector)`, `labelPairs(pairs)`, `contextsPath()`, `executeContexts(options)` and `CliError`, plus types. Metadata reads never resolve key contents. `executeContexts({selector, command: ["dag", "list"], configFile?, concurrency?, timeoutMs?})` returns a Promise with `ok` and typed `result.summary/results`, same limits/semantics as the CLI. It never mutates process env/exitCode/config. Per-target failures are returned; global usage/config errors reject with CliError. Relative keys resolve against the explicit config file. Whole-file validation remains strict: one malformed context (including an unselected one) rejects before requests; errors identify its name. Do not log stored metadata or unknown fields indiscriminately. No Node/CommonJS compatibility or deep source import contract. See README for the complete example and package verification.
+Use the public `dagu-cli/contexts` package subpath, available since 0.3.0, rather than importing source files. See the [package API reference](https://github.com/yoyooyooo/dagu-cli/blob/main/docs/contexts.md#public-contexts-api) for the Bun ESM contract and examples. Inspect `report.ok` and each result before deciding whether an operation succeeded.
