@@ -4,9 +4,9 @@ This project uses semantic versioning. Before 1.0.0, minor versions may change c
 
 ## Unreleased
 
-## 0.3.0 (prepared; not yet published)
+## [0.3.0](https://github.com/yoyooyooo/dagu-cli/releases/tag/v0.3.0)
 
-- C3: add the supported Bun/TypeScript ESM `dagu-cli/contexts` package export: `readContexts`, `readContext`, `selectContexts`, `labelPairs`, `contextsPath`, Promise-based `executeContexts`, `CliError` and public result/options types. Explicit config files avoid process-global mutation; packaged consumer import is regression-tested. This version is prepared for a future exact V_ctx release, not published by this change.
+- C3: add the supported Bun/TypeScript ESM `dagu-cli/contexts` package export: `readContexts`, `readContext`, `selectContexts`, `labelPairs`, `contextsPath`, Promise-based `executeContexts`, `CliError` and public result/options types. Explicit config files avoid process-global mutation; packaged consumer import is regression-tested.
 - C1: optional context labels, `context labels` read/merge and AND `context select`; parser/writer preserve unknown root and context fields.
 - Replace the exec HTTP timeout magic number with named deadline constants; normalize failure response command names to the REST leaf. Keep whole-file context validation, with an error identifying the invalid context.
 
